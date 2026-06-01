@@ -1,0 +1,17 @@
+[project]
+name = "slm-distillation"
+version = "0.1.0"
+description = "Teacher-student distillation workflows for SLM checkpoints"
+requires-python = ">=3.12"
+dependencies = [
+  "pyyaml>=6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
