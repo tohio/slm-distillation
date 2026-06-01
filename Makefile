@@ -1,4 +1,7 @@
-.PHONY: test test-unit
+.PHONY: install test test-unit
+
+install:
+	python -m pip install -r requirements.txt
 
 test:
 	pytest
