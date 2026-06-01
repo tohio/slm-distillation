@@ -23,6 +23,55 @@ class TeachersConfig:
     teachers: dict[str, TeacherConfig]
 
 
+@dataclass(frozen=True)
+class StudentConfig:
+    name: str
+    checkpoint_path: str
+    tokenizer_path: str
+
+
+@dataclass(frozen=True)
+class ResponseDistillationSettings:
+    mode: str
+    target_tokens: int
+    max_output_tokens: int
+    temperature: float
+    top_p: float
+
+
+@dataclass(frozen=True)
+class ResponseDataConfig:
+    prompts_path: str
+    raw_teacher_path: str
+    validated_path: str
+    rejected_path: str
+    distill_dataset_path: str
+
+
+@dataclass(frozen=True)
+class ValidationConfig:
+    require_non_empty_output: bool
+    reject_refusals_when_not_expected: bool
+    reject_code_fences_for_function_body_tasks: bool
+    max_retries: int
+
+
+@dataclass(frozen=True)
+class OutputConfig:
+    run_dir: str
+    checkpoint_dir: str
+
+
+@dataclass(frozen=True)
+class ResponseDistillConfig:
+    teacher_name: str
+    student: StudentConfig
+    distillation: ResponseDistillationSettings
+    data: ResponseDataConfig
+    validation: ValidationConfig
+    output: OutputConfig
+
+
 def load_yaml(path: str | Path) -> dict[str, Any]:
     config_path = Path(path)
 
@@ -36,6 +85,41 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
         raise ValueError(f"Config file must contain a YAML mapping: {config_path}")
 
     return data
+
+
+def _require_mapping(data: dict[str, Any], key: str) -> dict[str, Any]:
+    value = data.get(key)
+    if not isinstance(value, dict):
+        raise ValueError(f"config requires '{key}' mapping")
+    return value
+
+
+def _require_str(data: dict[str, Any], key: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"config requires non-empty '{key}'")
+    return value
+
+
+def _require_int(data: dict[str, Any], key: str) -> int:
+    value = data.get(key)
+    if not isinstance(value, int):
+        raise ValueError(f"config requires integer '{key}'")
+    return value
+
+
+def _require_float_or_int(data: dict[str, Any], key: str) -> float:
+    value = data.get(key)
+    if not isinstance(value, (float, int)):
+        raise ValueError(f"config requires numeric '{key}'")
+    return float(value)
+
+
+def _require_bool(data: dict[str, Any], key: str) -> bool:
+    value = data.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"config requires boolean '{key}'")
+    return value
 
 
 def load_teachers_config(path: str | Path) -> TeachersConfig:
@@ -90,3 +174,57 @@ def load_teachers_config(path: str | Path) -> TeachersConfig:
 
 def get_default_teacher(config: TeachersConfig) -> TeacherConfig:
     return config.teachers[config.default_teacher]
+
+
+def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
+    data = load_yaml(path)
+
+    teacher = _require_mapping(data, "teacher")
+    student = _require_mapping(data, "student")
+    distillation = _require_mapping(data, "distillation")
+    data_cfg = _require_mapping(data, "data")
+    validation = _require_mapping(data, "validation")
+    output = _require_mapping(data, "output")
+
+    mode = _require_str(distillation, "mode")
+    if mode != "response":
+        raise ValueError("response distill config requires distillation.mode='response'")
+
+    return ResponseDistillConfig(
+        teacher_name=_require_str(teacher, "name"),
+        student=StudentConfig(
+            name=_require_str(student, "name"),
+            checkpoint_path=_require_str(student, "checkpoint_path"),
+            tokenizer_path=_require_str(student, "tokenizer_path"),
+        ),
+        distillation=ResponseDistillationSettings(
+            mode=mode,
+            target_tokens=_require_int(distillation, "target_tokens"),
+            max_output_tokens=_require_int(distillation, "max_output_tokens"),
+            temperature=_require_float_or_int(distillation, "temperature"),
+            top_p=_require_float_or_int(distillation, "top_p"),
+        ),
+        data=ResponseDataConfig(
+            prompts_path=_require_str(data_cfg, "prompts_path"),
+            raw_teacher_path=_require_str(data_cfg, "raw_teacher_path"),
+            validated_path=_require_str(data_cfg, "validated_path"),
+            rejected_path=_require_str(data_cfg, "rejected_path"),
+            distill_dataset_path=_require_str(data_cfg, "distill_dataset_path"),
+        ),
+        validation=ValidationConfig(
+            require_non_empty_output=_require_bool(
+                validation, "require_non_empty_output"
+            ),
+            reject_refusals_when_not_expected=_require_bool(
+                validation, "reject_refusals_when_not_expected"
+            ),
+            reject_code_fences_for_function_body_tasks=_require_bool(
+                validation, "reject_code_fences_for_function_body_tasks"
+            ),
+            max_retries=_require_int(validation, "max_retries"),
+        ),
+        output=OutputConfig(
+            run_dir=_require_str(output, "run_dir"),
+            checkpoint_dir=_require_str(output, "checkpoint_dir"),
+        ),
+    )
