@@ -1,0 +1,48 @@
+from distill.generation.generate_responses import generate_teacher_records
+from distill.generation.prompts import PromptRecord
+from distill.providers.base import GenerationRequest, GenerationResponse
+
+
+class FakeProvider:
+    provider_name = "fake"
+
+    def generate(self, request: GenerationRequest) -> GenerationResponse:
+        return GenerationResponse(
+            text=f"answer: {request.prompt}",
+            model=request.model,
+            provider=self.provider_name,
+            input_tokens=10,
+            output_tokens=20,
+            raw={"ok": True},
+        )
+
+
+def test_generate_teacher_records_with_fake_provider() -> None:
+    prompts = [
+        PromptRecord(
+            id="p1",
+            category="instruction",
+            prompt="Say hello.",
+            metadata={"source": "test"},
+        )
+    ]
+
+    records = generate_teacher_records(
+        prompts=prompts,
+        provider=FakeProvider(),
+        teacher_model="teacher/model",
+        max_output_tokens=32,
+        temperature=0.2,
+        top_p=0.9,
+    )
+
+    assert len(records) == 1
+    assert records[0].prompt_id == "p1"
+    assert records[0].category == "instruction"
+    assert records[0].prompt == "Say hello."
+    assert records[0].teacher == "teacher/model"
+    assert records[0].provider == "fake"
+    assert records[0].response == "answer: Say hello."
+    assert records[0].input_tokens == 10
+    assert records[0].output_tokens == 20
+    assert records[0].metadata == {"source": "test"}

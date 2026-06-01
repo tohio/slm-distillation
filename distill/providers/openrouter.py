@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+import httpx
+
 from distill.providers.base import GenerationRequest, GenerationResponse
 
 
@@ -20,8 +22,9 @@ class OpenRouterPayload:
 class OpenRouterProvider:
     provider_name = "openrouter"
 
-    def __init__(self, api_key: str | None = None) -> None:
+    def __init__(self, api_key: str | None = None, timeout: float = 60.0) -> None:
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self.timeout = timeout
 
     def build_payload(self, request: GenerationRequest) -> OpenRouterPayload:
         if not self.api_key:
@@ -35,23 +38,14 @@ class OpenRouterProvider:
             },
             json={
                 "model": request.model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": request.prompt,
-                    }
-                ],
+                "messages": [{"role": "user", "content": request.prompt}],
                 "max_tokens": request.max_output_tokens,
                 "temperature": request.temperature,
                 "top_p": request.top_p,
             },
         )
 
-    def parse_response(
-        self,
-        payload: dict[str, Any],
-        model: str,
-    ) -> GenerationResponse:
+    def parse_response(self, payload: dict[str, Any], model: str) -> GenerationResponse:
         choices = payload.get("choices")
         if not isinstance(choices, list) or not choices:
             raise ValueError("OpenRouter response missing non-empty choices")
@@ -82,7 +76,14 @@ class OpenRouterProvider:
         )
 
     def generate(self, request: GenerationRequest) -> GenerationResponse:
-        raise NotImplementedError(
-            "Network generation is not implemented yet. "
-            "Use build_payload and parse_response first."
-        )
+        payload = self.build_payload(request)
+
+        with httpx.Client(timeout=self.timeout) as client:
+            response = client.post(
+                payload.url,
+                headers=payload.headers,
+                json=payload.json,
+            )
+            response.raise_for_status()
+
+        return self.parse_response(response.json(), model=request.model)
