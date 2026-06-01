@@ -15,6 +15,8 @@ class TeacherConfig:
     mode: str
     purpose: str
     distillation_allowed: bool | str
+    input_price_per_1m: float | None = None
+    output_price_per_1m: float | None = None
 
 
 @dataclass(frozen=True)
@@ -155,6 +157,19 @@ def load_teachers_config(path: str | Path) -> TeachersConfig:
         if missing:
             raise ValueError(f"teacher '{name}' missing required fields: {missing}")
 
+        input_price = raw.get("input_price_per_1m")
+        output_price = raw.get("output_price_per_1m")
+
+        if input_price is not None and not isinstance(input_price, (int, float)):
+            raise ValueError(
+                f"teacher '{name}' field 'input_price_per_1m' must be numeric"
+            )
+
+        if output_price is not None and not isinstance(output_price, (int, float)):
+            raise ValueError(
+                f"teacher '{name}' field 'output_price_per_1m' must be numeric"
+            )
+
         teachers[name] = TeacherConfig(
             name=name,
             provider=str(raw["provider"]),
@@ -162,6 +177,12 @@ def load_teachers_config(path: str | Path) -> TeachersConfig:
             mode=str(raw["mode"]),
             purpose=str(raw["purpose"]),
             distillation_allowed=raw["distillation_allowed"],
+            input_price_per_1m=(
+                float(input_price) if input_price is not None else None
+            ),
+            output_price_per_1m=(
+                float(output_price) if output_price is not None else None
+            ),
         )
 
     if default_teacher not in teachers:
@@ -227,4 +248,21 @@ def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
             run_dir=_require_str(output, "run_dir"),
             checkpoint_dir=_require_str(output, "checkpoint_dir"),
         ),
+    )
+
+
+def teacher_to_pricing(teacher: TeacherConfig):
+    from distill.utils.pricing import ModelPricing
+
+    if teacher.input_price_per_1m is None:
+        raise ValueError(f"teacher '{teacher.name}' missing input_price_per_1m")
+
+    if teacher.output_price_per_1m is None:
+        raise ValueError(f"teacher '{teacher.name}' missing output_price_per_1m")
+
+    return ModelPricing(
+        provider=teacher.provider,
+        model=teacher.model,
+        input_price_per_1m=teacher.input_price_per_1m,
+        output_price_per_1m=teacher.output_price_per_1m,
     )
