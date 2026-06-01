@@ -2,17 +2,25 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
 .venv/
 venv/
 
 # Environment
 .env
 
-# Generated data
+# Generated teacher/data outputs
 data/raw_teacher/*.jsonl
 data/validated/*.jsonl
 data/rejected/*.jsonl
 data/distill/*.jsonl
 
-# Runs and checkpoints
+# Runs/checkpoints
 runs/
+checkpoints/
+
+# Logs
+*.log
