@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Environment
+.env
+
+# Generated data
+data/raw_teacher/*.jsonl
+data/validated/*.jsonl
+data/rejected/*.jsonl
+data/distill/*.jsonl
+
+# Runs and checkpoints
+runs/
