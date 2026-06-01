@@ -7,11 +7,26 @@ from distill.generation.generate_responses import (
     write_teacher_records,
 )
 from distill.generation.prompts import load_prompt_records
+from distill.providers.base import GenerationRequest, GenerationResponse
 from distill.providers.openrouter import OpenRouterProvider
 from distill.utils.config import (
     load_response_distill_config,
     load_teachers_config,
 )
+
+
+class DryRunProvider:
+    provider_name = "dry_run"
+
+    def generate(self, request: GenerationRequest) -> GenerationResponse:
+        return GenerationResponse(
+            text=f"[dry-run] {request.prompt}",
+            model=request.model,
+            provider=self.provider_name,
+            input_tokens=None,
+            output_tokens=None,
+            raw={"dry_run": True},
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,6 +42,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=None,
         help="Optional max number of prompts to process.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Generate deterministic local responses without calling the provider API.",
     )
     return parser.parse_args()
 
@@ -50,7 +70,7 @@ def main() -> None:
     if args.limit is not None:
         prompts = prompts[: args.limit]
 
-    provider = OpenRouterProvider()
+    provider = DryRunProvider() if args.dry_run else OpenRouterProvider()
 
     records = generate_teacher_records(
         prompts=prompts,
