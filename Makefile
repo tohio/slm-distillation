@@ -1,10 +1,44 @@
-.PHONY: install test test-unit
+.PHONY: install test test-unit generate generate-dry-run validate dataset response-pipeline clean-generated
+
+CONFIG ?= configs/response_distill.yaml
+TEACHERS_CONFIG ?= configs/teachers.yaml
+LIMIT ?=
 
 install:
-	python -m pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
 
 test:
-	pytest
+	python3 -m pytest
 
 test-unit:
-	pytest tests
+	python3 -m pytest tests
+
+generate:
+	python3 scripts/generate_teacher_responses.py \
+		--config $(CONFIG) \
+		--teachers $(TEACHERS_CONFIG) \
+		$(if $(LIMIT),--limit $(LIMIT),)
+
+generate-dry-run:
+	python3 scripts/generate_teacher_responses.py \
+		--config $(CONFIG) \
+		--teachers $(TEACHERS_CONFIG) \
+		$(if $(LIMIT),--limit $(LIMIT),) \
+		--dry-run
+
+validate:
+	python3 scripts/validate_teacher_responses.py \
+		--config $(CONFIG)
+
+dataset:
+	python3 scripts/build_dataset.py \
+		--config $(CONFIG)
+
+response-pipeline: generate validate dataset
+
+clean-generated:
+	rm -f data/raw_teacher/*.jsonl
+	rm -f data/validated/*.jsonl
+	rm -f data/rejected/*.jsonl
+	rm -f data/distill/*.jsonl
+	rm -rf runs/
