@@ -7,6 +7,8 @@ teachers:
     mode: response
     purpose: bulk_response_distillation
     distillation_allowed: true
+    input_price_per_1m: 0.0983
+    output_price_per_1m: 0.1966
 
   qwen3_235b_a22b_2507:
     provider: openrouter
