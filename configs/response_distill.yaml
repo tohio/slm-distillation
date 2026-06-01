@@ -1,0 +1,31 @@
+teacher:
+  name: deepseek_v4_flash
+
+student:
+  name: slm-student
+  checkpoint_path: ../slm/results/runs/student/final
+  tokenizer_path: ../slm/results/runs/student/tokenizer
+
+distillation:
+  mode: response
+  target_tokens: 50000000
+  max_output_tokens: 1024
+  temperature: 0.2
+  top_p: 0.9
+
+data:
+  prompts_path: data/prompts/instruction_seed.jsonl
+  raw_teacher_path: data/raw_teacher/deepseek_v4_flash.jsonl
+  validated_path: data/validated/deepseek_v4_flash.jsonl
+  rejected_path: data/rejected/deepseek_v4_flash.jsonl
+  distill_dataset_path: data/distill/response_distill.jsonl
+
+validation:
+  require_non_empty_output: true
+  reject_refusals_when_not_expected: true
+  reject_code_fences_for_function_body_tasks: true
+  max_retries: 2
+
+output:
+  run_dir: runs/response_distill
+  checkpoint_dir: runs/response_distill/checkpoints

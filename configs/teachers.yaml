@@ -1,0 +1,30 @@
+default_teacher: deepseek_v4_flash
+
+teachers:
+  deepseek_v4_flash:
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+    mode: response
+    purpose: bulk_response_distillation
+    distillation_allowed: true
+
+  qwen3_235b_a22b_2507:
+    provider: openrouter
+    model: qwen/qwen3-235b-a22b-2507
+    mode: response
+    purpose: quality_comparison
+    distillation_allowed: verify
+
+  qwen3_30b_a3b_2507:
+    provider: openrouter
+    model: qwen/qwen3-30b-a3b-instruct-2507
+    mode: response
+    purpose: low_cost_comparison
+    distillation_allowed: verify
+
+  gpt_oss_20b:
+    provider: openrouter
+    model: openai/gpt-oss-20b
+    mode: response
+    purpose: smoke_test
+    distillation_allowed: policy_gated
