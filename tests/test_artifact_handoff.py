@@ -7,6 +7,7 @@ from distill.artifacts.handoff import (
     collect_artifact_files,
     load_artifact_config,
     pack_artifacts,
+    parse_s3_uri,
     stage_artifacts,
     unpack_artifacts,
     verify_manifest,
@@ -17,10 +18,18 @@ def test_load_artifact_config_reads_default_file() -> None:
     config = load_artifact_config("configs/artifacts.yaml")
 
     assert config.run_name == "slm-125m-deepseek-distilled"
-    assert config.repo_id == "tohio/slm-distillation-artifacts"
-    assert config.repo_type == "dataset"
+    assert config.backend == "s3"
+    assert config.s3_uri.startswith("s3://")
+    assert config.delete_remote_extra is True
     assert "data/distill/response_distill.jsonl" in config.required
     assert "data/distill/*.jsonl" in config.include
+
+
+def test_parse_s3_uri() -> None:
+    location = parse_s3_uri("s3://my-bucket/slm-distillation/run")
+
+    assert location.bucket == "my-bucket"
+    assert location.prefix == "slm-distillation/run/"
 
 
 def test_collect_artifact_files_uses_include_patterns(tmp_path: Path) -> None:
@@ -45,10 +54,11 @@ def test_stage_artifacts_requires_required_files(tmp_path: Path) -> None:
         '''
 artifact:
   run_name: test-run
-  repo_id: tohio/test-artifacts
-  repo_type: dataset
+  backend: s3
+  s3_uri: s3://test-bucket/slm-distillation/test-run/
   local_dir: artifacts/test-run
   bundle_path: artifacts/test-run.tar.gz
+  delete_remote_extra: true
   required:
     - data/distill/response_distill.jsonl
   include:
@@ -75,10 +85,11 @@ def test_stage_artifacts_writes_manifest_and_verifies(tmp_path: Path) -> None:
         '''
 artifact:
   run_name: test-run
-  repo_id: tohio/test-artifacts
-  repo_type: dataset
+  backend: s3
+  s3_uri: s3://test-bucket/slm-distillation/test-run/
   local_dir: artifacts/test-run
   bundle_path: artifacts/test-run.tar.gz
+  delete_remote_extra: true
   required:
     - data/distill/response_distill.jsonl
   include:
@@ -113,10 +124,11 @@ def test_pack_and_unpack_artifacts(tmp_path: Path) -> None:
         '''
 artifact:
   run_name: test-run
-  repo_id: tohio/test-artifacts
-  repo_type: dataset
+  backend: s3
+  s3_uri: s3://test-bucket/slm-distillation/test-run/
   local_dir: artifacts/test-run
   bundle_path: artifacts/test-run.tar.gz
+  delete_remote_extra: true
   required:
     - data/preference/dpo_pairs.jsonl
   include:

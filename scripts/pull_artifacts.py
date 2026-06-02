@@ -6,7 +6,7 @@ from distill.artifacts.handoff import pull_artifacts
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Pull generated JSONL artifacts from HF.")
+    parser = argparse.ArgumentParser(description="Pull generated JSONL artifacts from S3.")
     parser.add_argument(
         "--config",
         default="configs/artifacts.yaml",
@@ -21,7 +21,7 @@ def main() -> None:
     print(f"Run: {result.run_name}")
     print(f"Files copied: {result.file_count}")
     print(f"Bytes copied: {result.total_bytes}")
-    print(f"Pulled artifacts from: {result.repo_id}")
+    print(f"Pulled artifacts from: {result.s3_uri}")
 
 
 if __name__ == "__main__":

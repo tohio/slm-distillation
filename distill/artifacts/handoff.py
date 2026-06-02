@@ -8,10 +8,9 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
-
-from distill.utils.env import get_env_value
 
 
 @dataclass(frozen=True)
@@ -24,10 +23,11 @@ class ArtifactFile:
 @dataclass(frozen=True)
 class ArtifactConfig:
     run_name: str
-    repo_id: str
-    repo_type: str
+    backend: str
+    s3_uri: str
     local_dir: str
     bundle_path: str
+    delete_remote_extra: bool
     required: list[str]
     include: list[str]
 
@@ -46,7 +46,13 @@ class ArtifactResult:
     total_bytes: int
     manifest_path: str
     bundle_path: str | None = None
-    repo_id: str | None = None
+    s3_uri: str | None = None
+
+
+@dataclass(frozen=True)
+class S3Location:
+    bucket: str
+    prefix: str
 
 
 def _require_str(data: dict[str, Any], key: str) -> str:
@@ -56,8 +62,11 @@ def _require_str(data: dict[str, Any], key: str) -> str:
     return value
 
 
-def _hf_token() -> str | None:
-    return get_env_value("HF_TOKEN") or get_env_value("HUGGINGFACE_HUB_TOKEN")
+def _require_bool(data: dict[str, Any], key: str) -> bool:
+    value = data.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"artifact config requires boolean '{key}'")
+    return value
 
 
 def _require_str_list(data: dict[str, Any], key: str) -> list[str]:
@@ -82,15 +91,32 @@ def load_artifact_config(path: str | Path) -> ArtifactConfig:
     if not isinstance(artifact, dict):
         raise ValueError("artifact config requires an 'artifact' mapping")
 
+    backend = _require_str(artifact, "backend")
+    if backend != "s3":
+        raise ValueError("artifact.backend must be 's3'")
+
     return ArtifactConfig(
         run_name=_require_str(artifact, "run_name"),
-        repo_id=_require_str(artifact, "repo_id"),
-        repo_type=_require_str(artifact, "repo_type"),
+        backend=backend,
+        s3_uri=_require_str(artifact, "s3_uri"),
         local_dir=_require_str(artifact, "local_dir"),
         bundle_path=_require_str(artifact, "bundle_path"),
+        delete_remote_extra=_require_bool(artifact, "delete_remote_extra"),
         required=_require_str_list(artifact, "required"),
         include=_require_str_list(artifact, "include"),
     )
+
+
+def parse_s3_uri(uri: str) -> S3Location:
+    parsed = urlparse(uri)
+    if parsed.scheme != "s3" or not parsed.netloc:
+        raise ValueError(f"Invalid S3 URI: {uri}")
+
+    prefix = parsed.path.lstrip("/")
+    if prefix and not prefix.endswith("/"):
+        prefix += "/"
+
+    return S3Location(bucket=parsed.netloc, prefix=prefix)
 
 
 def sha256_file(path: Path) -> str:
@@ -298,40 +324,73 @@ def unpack_artifacts(
     return target
 
 
+def _boto3_client() -> Any:
+    try:
+        import boto3
+    except ImportError as exc:
+        raise RuntimeError("boto3 is required for S3 artifact handoff") from exc
+
+    return boto3.client("s3")
+
+
+def _list_s3_keys(client: Any, location: S3Location) -> set[str]:
+    keys: set[str] = {}
+    paginator = client.get_paginator("list_objects_v2")
+
+    for page in paginator.paginate(Bucket=location.bucket, Prefix=location.prefix):
+        for item in page.get("Contents", []):
+            key = item.get("Key")
+            if isinstance(key, str):
+                keys.add(key)
+
+    return keys
+
+
+def _delete_s3_keys(client: Any, bucket: str, keys: list[str]) -> None:
+    for index in range(0, len(keys), 1000):
+        batch = keys[index : index + 1000]
+        if not batch:
+            continue
+        client.delete_objects(
+            Bucket=bucket,
+            Delete={"Objects": [{"Key": key} for key in batch]},
+        )
+
+
 def push_artifacts(
     config_path: str | Path,
     *,
     root: str | Path = ".",
 ) -> ArtifactResult:
-    try:
-        from huggingface_hub import HfApi
-    except ImportError as exc:
-        raise RuntimeError("huggingface_hub is required for push-artifacts") from exc
-
     config = load_artifact_config(config_path)
     root_path = Path(root)
     result = stage_artifacts(config, root=root_path)
-    token = _hf_token()
 
-    api = HfApi(token=token)
-    api.create_repo(
-        repo_id=config.repo_id,
-        repo_type=config.repo_type,
-        exist_ok=True,
-    )
-    api.upload_folder(
-        repo_id=config.repo_id,
-        repo_type=config.repo_type,
-        folder_path=str(root_path / config.local_dir),
-        path_in_repo=config.run_name,
-    )
+    location = parse_s3_uri(config.s3_uri)
+    local_dir = root_path / config.local_dir
+    client = _boto3_client()
+
+    uploaded_keys: set[str] = {}
+    for source in sorted(local_dir.rglob("*")):
+        if not source.is_file():
+            continue
+
+        relative = source.relative_to(local_dir).as_posix()
+        key = f"{location.prefix}{relative}"
+        client.upload_file(str(source), location.bucket, key)
+        uploaded_keys.add(key)
+
+    if config.delete_remote_extra:
+        existing_keys = _list_s3_keys(client, location)
+        stale_keys = sorted(existing_keys - uploaded_keys)
+        _delete_s3_keys(client, location.bucket, stale_keys)
 
     return ArtifactResult(
         run_name=result.run_name,
         file_count=result.file_count,
         total_bytes=result.total_bytes,
         manifest_path=result.manifest_path,
-        repo_id=config.repo_id,
+        s3_uri=config.s3_uri,
     )
 
 
@@ -340,40 +399,28 @@ def pull_artifacts(
     *,
     root: str | Path = ".",
 ) -> ArtifactResult:
-    try:
-        from huggingface_hub import snapshot_download
-    except ImportError as exc:
-        raise RuntimeError("huggingface_hub is required for pull-artifacts") from exc
-
     config = load_artifact_config(config_path)
     root_path = Path(root)
-    token = _hf_token()
+    location = parse_s3_uri(config.s3_uri)
+    client = _boto3_client()
 
-    snapshot_path = Path(
-        snapshot_download(
-            repo_id=config.repo_id,
-            repo_type=config.repo_type,
-            allow_patterns=[f"{config.run_name}/**"],
-            token=token,
-        )
-    )
-
-    source_run_dir = snapshot_path / config.run_name
-    if not source_run_dir.exists():
-        raise FileNotFoundError(
-            f"Run artifact folder not found in downloaded snapshot: {source_run_dir}"
-        )
+    keys = sorted(_list_s3_keys(client, location))
+    if not keys:
+        raise FileNotFoundError(f"No artifact objects found at {config.s3_uri}")
 
     copied_files = 0
     total_bytes = 0
-    for source in source_run_dir.rglob("*"):
-        if source.is_file():
-            relative = source.relative_to(source_run_dir)
-            target = root_path / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-            copied_files += 1
-            total_bytes += target.stat().st_size
+
+    for key in keys:
+        relative = key[len(location.prefix) :]
+        if not relative or relative.endswith("/"):
+            continue
+
+        target = root_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        client.download_file(location.bucket, key, str(target))
+        copied_files += 1
+        total_bytes += target.stat().st_size
 
     manifest_path = root_path / "manifest.json"
     if manifest_path.exists():
@@ -384,5 +431,5 @@ def pull_artifacts(
         file_count=copied_files,
         total_bytes=total_bytes,
         manifest_path=str(manifest_path),
-        repo_id=config.repo_id,
+        s3_uri=config.s3_uri,
     )

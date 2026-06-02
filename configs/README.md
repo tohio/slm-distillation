@@ -13,6 +13,6 @@ Configuration files for teacher selection, distillation runs, validation rules, 
 | `logit_distill.yaml` | Local teacher/student logit-distillation config. |
 | `dpo.yaml` | DPO stage config for the final distilled model. |
 | `export.yaml` | Export and model-card config for the final model variant. |
-| `artifacts.yaml` | Required generated JSONL artifact handoff config. |
+| `artifacts.yaml` | Required S3 artifact handoff config. |
 | `validation.yaml` | Shared validation and filtering rules. |
 | `eval.yaml` | Evaluation config for base and distilled checkpoints. |

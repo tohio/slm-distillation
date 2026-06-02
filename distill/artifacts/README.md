@@ -29,22 +29,17 @@ The required training handoff files are:
 
 The manifest records file paths, sizes, and SHA256 checksums.
 
-## External Storage
+## Storage
 
-The default external target is a Hugging Face dataset repo:
+Generated artifacts are stored in S3.
 
-    tohio/slm-distillation-artifacts
+Set `artifact.s3_uri` in `configs/artifacts.yaml`:
 
-Artifacts are organized under the configured run name.
+    s3://YOUR_BUCKET/slm-distillation/slm-125m-deepseek-distilled/
 
-## Authentication
+AWS authentication uses the standard boto3 credential chain:
 
-Artifact push and pull read Hugging Face credentials from `.env`.
-
-Required variable:
-
-    HF_TOKEN=...
-
-`HUGGINGFACE_HUB_TOKEN` is also supported.
-
-Interactive `hf auth login` is not required for repository workflows.
+- instance profile
+- `AWS_PROFILE`
+- environment variables
+- shared AWS config files
