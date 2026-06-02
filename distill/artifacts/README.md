@@ -36,3 +36,15 @@ The default external target is a Hugging Face dataset repo:
     tohio/slm-distillation-artifacts
 
 Artifacts are organized under the configured run name.
+
+## Authentication
+
+Artifact push and pull read Hugging Face credentials from `.env`.
+
+Required variable:
+
+    HF_TOKEN=...
+
+`HUGGINGFACE_HUB_TOKEN` is also supported.
+
+Interactive `hf auth login` is not required for repository workflows.

@@ -4,6 +4,10 @@ version = "0.1.0"
 description = "Teacher-student distillation workflows for SLM checkpoints"
 requires-python = ">=3.12"
 
+dependencies = [
+    "huggingface_hub>=0.24.0",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

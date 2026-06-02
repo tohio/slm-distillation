@@ -11,6 +11,8 @@ from typing import Any
 
 import yaml
 
+from distill.utils.env import get_env_value
+
 
 @dataclass(frozen=True)
 class ArtifactFile:
@@ -52,6 +54,10 @@ def _require_str(data: dict[str, Any], key: str) -> str:
     if not isinstance(value, str) or not value:
         raise ValueError(f"artifact config requires non-empty string '{key}'")
     return value
+
+
+def _hf_token() -> str | None:
+    return get_env_value("HF_TOKEN") or get_env_value("HUGGINGFACE_HUB_TOKEN")
 
 
 def _require_str_list(data: dict[str, Any], key: str) -> list[str]:
@@ -305,8 +311,9 @@ def push_artifacts(
     config = load_artifact_config(config_path)
     root_path = Path(root)
     result = stage_artifacts(config, root=root_path)
+    token = _hf_token()
 
-    api = HfApi()
+    api = HfApi(token=token)
     api.create_repo(
         repo_id=config.repo_id,
         repo_type=config.repo_type,
@@ -340,12 +347,14 @@ def pull_artifacts(
 
     config = load_artifact_config(config_path)
     root_path = Path(root)
+    token = _hf_token()
 
     snapshot_path = Path(
         snapshot_download(
             repo_id=config.repo_id,
             repo_type=config.repo_type,
             allow_patterns=[f"{config.run_name}/**"],
+            token=token,
         )
     )
 
