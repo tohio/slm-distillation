@@ -17,7 +17,6 @@ distillation:
   continue_on_error: true
 
 data:
-  prompts_path: data/prompts/instruction_seed.jsonl
   prompts_paths:
   - data/prompts/built_prompts.jsonl
   raw_teacher_path: data/raw_teacher/deepseek_v4_flash.jsonl
