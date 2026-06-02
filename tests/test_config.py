@@ -63,7 +63,6 @@ def test_load_response_distill_config_reads_default_file() -> None:
     assert config.distillation.continue_on_error is True
     assert config.data.prompts_path is None
     assert config.data.prompts_paths == ["data/prompts/built_prompts.jsonl"]
-    assert config.data.prompts_paths == ["data/prompts/instruction_seed.jsonl"]
     assert config.data.raw_teacher_path == "data/raw_teacher/deepseek_v4_flash.jsonl"
     assert config.output.model_name == "slm-125m-deepseek-distilled"
     assert config.output.source_model_name == "slm-125m"
