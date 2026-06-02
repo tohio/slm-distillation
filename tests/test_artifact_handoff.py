@@ -8,6 +8,7 @@ from distill.artifacts.handoff import (
     load_artifact_config,
     pack_artifacts,
     parse_s3_uri,
+    resolve_s3_uri,
     stage_artifacts,
     unpack_artifacts,
     verify_manifest,
@@ -19,7 +20,8 @@ def test_load_artifact_config_reads_default_file() -> None:
 
     assert config.run_name == "slm-125m-deepseek-distilled"
     assert config.backend == "s3"
-    assert config.s3_uri.startswith("s3://")
+    assert config.s3_bucket_env == "S3_BUCKET"
+    assert config.s3_prefix_env == "S3_PREFIX"
     assert config.delete_remote_extra is True
     assert "data/distill/response_distill.jsonl" in config.required
     assert "data/distill/*.jsonl" in config.include
@@ -30,6 +32,17 @@ def test_parse_s3_uri() -> None:
 
     assert location.bucket == "my-bucket"
     assert location.prefix == "slm-distillation/run/"
+
+
+def test_resolve_s3_uri_from_env(monkeypatch) -> None:
+    config = load_artifact_config("configs/artifacts.yaml")
+    monkeypatch.setenv("S3_BUCKET", "my-bucket")
+    monkeypatch.setenv("S3_PREFIX", "slm-distillation/artifacts")
+
+    assert (
+        resolve_s3_uri(config)
+        == "s3://my-bucket/slm-distillation/artifacts/slm-125m-deepseek-distilled/"
+    )
 
 
 def test_collect_artifact_files_uses_include_patterns(tmp_path: Path) -> None:
@@ -55,7 +68,8 @@ def test_stage_artifacts_requires_required_files(tmp_path: Path) -> None:
 artifact:
   run_name: test-run
   backend: s3
-  s3_uri: s3://test-bucket/slm-distillation/test-run/
+  s3_bucket_env: S3_BUCKET
+  s3_prefix_env: S3_PREFIX
   local_dir: artifacts/test-run
   bundle_path: artifacts/test-run.tar.gz
   delete_remote_extra: true
@@ -86,7 +100,8 @@ def test_stage_artifacts_writes_manifest_and_verifies(tmp_path: Path) -> None:
 artifact:
   run_name: test-run
   backend: s3
-  s3_uri: s3://test-bucket/slm-distillation/test-run/
+  s3_bucket_env: S3_BUCKET
+  s3_prefix_env: S3_PREFIX
   local_dir: artifacts/test-run
   bundle_path: artifacts/test-run.tar.gz
   delete_remote_extra: true
@@ -125,7 +140,8 @@ def test_pack_and_unpack_artifacts(tmp_path: Path) -> None:
 artifact:
   run_name: test-run
   backend: s3
-  s3_uri: s3://test-bucket/slm-distillation/test-run/
+  s3_bucket_env: S3_BUCKET
+  s3_prefix_env: S3_PREFIX
   local_dir: artifacts/test-run
   bundle_path: artifacts/test-run.tar.gz
   delete_remote_extra: true
