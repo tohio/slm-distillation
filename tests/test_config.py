@@ -64,7 +64,19 @@ def test_load_response_distill_config_reads_default_file() -> None:
     assert config.data.prompts_path == "data/prompts/instruction_seed.jsonl"
     assert config.data.prompts_paths == ["data/prompts/instruction_seed.jsonl"]
     assert config.data.raw_teacher_path == "data/raw_teacher/deepseek_v4_flash.jsonl"
-    assert config.output.run_dir == "runs/response_distill"
+    assert config.output.model_name == "slm-125m-deepseek-distilled"
+    assert config.output.source_model_name == "slm-125m"
+    assert config.output.teacher_family == "deepseek"
+    assert config.output.run_dir == "runs/slm-125m-deepseek-distilled"
+    assert config.output.final_checkpoint_dir == (
+        "runs/slm-125m-deepseek-distilled/dpo/checkpoints/final"
+    )
+    assert config.output.export_repo == "tohio/slm-125m-deepseek-distilled"
+    assert config.model_card.source_checkpoint == "tohio/slm-125m-instruct"
+    assert config.model_card.teacher_model == "deepseek/deepseek-v4-flash"
+    assert config.model_card.teacher_provider == "openrouter"
+    assert config.model_card.distillation_type == "response"
+    assert config.model_card.dpo_applied is True
 
 
 def test_load_response_distill_config_rejects_wrong_mode(tmp_path: Path) -> None:
@@ -107,8 +119,20 @@ validation:
   max_retries: 2
 
 output:
-  run_dir: runs/test
-  checkpoint_dir: runs/test/checkpoints
+  model_name: slm-test-teacher-distilled
+  source_model_name: slm-test
+  teacher_family: teacher
+  run_dir: runs/slm-test-teacher-distilled
+  checkpoint_dir: runs/slm-test-teacher-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/slm-test-teacher-distilled/dpo/checkpoints/final
+  export_repo: tohio/slm-test-teacher-distilled
+
+model_card:
+  source_checkpoint: tohio/slm-test-instruct
+  teacher_model: example/model
+  teacher_provider: openrouter
+  distillation_type: response
+  dpo_applied: true
 """,
         encoding="utf-8",
     )
@@ -157,8 +181,20 @@ validation:
   max_retries: 2
 
 output:
-  run_dir: runs/test
-  checkpoint_dir: runs/test/checkpoints
+  model_name: slm-test-teacher-distilled
+  source_model_name: slm-test
+  teacher_family: teacher
+  run_dir: runs/slm-test-teacher-distilled
+  checkpoint_dir: runs/slm-test-teacher-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/slm-test-teacher-distilled/dpo/checkpoints/final
+  export_repo: tohio/slm-test-teacher-distilled
+
+model_card:
+  source_checkpoint: tohio/slm-test-instruct
+  teacher_model: example/model
+  teacher_provider: openrouter
+  distillation_type: response
+  dpo_applied: true
 """,
         encoding="utf-8",
     )
@@ -211,11 +247,38 @@ validation:
   max_retries: 2
 
 output:
-  run_dir: runs/test
-  checkpoint_dir: runs/test/checkpoints
+  model_name: slm-test-teacher-distilled
+  source_model_name: slm-test
+  teacher_family: teacher
+  run_dir: runs/slm-test-teacher-distilled
+  checkpoint_dir: runs/slm-test-teacher-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/slm-test-teacher-distilled/dpo/checkpoints/final
+  export_repo: tohio/slm-test-teacher-distilled
+
+model_card:
+  source_checkpoint: tohio/slm-test-instruct
+  teacher_model: example/model
+  teacher_provider: openrouter
+  distillation_type: response
+  dpo_applied: true
 """,
         encoding="utf-8",
     )
 
     with pytest.raises(ValueError, match="prompts_path"):
         load_response_distill_config(path)
+
+def test_load_response_distill_config_reads_groq_model_naming() -> None:
+    from distill.utils.config import load_response_distill_config
+
+    config = load_response_distill_config("configs/response_distill_groq.yaml")
+
+    assert config.teacher_name == "groq_llama_3_3_70b_versatile"
+    assert config.output.model_name == "slm-125m-groq-distilled"
+    assert config.output.source_model_name == "slm-125m"
+    assert config.output.teacher_family == "groq"
+    assert config.output.export_repo == "tohio/slm-125m-groq-distilled"
+    assert config.model_card.teacher_model == "llama-3.3-70b-versatile"
+    assert config.model_card.teacher_provider == "groq"
+    assert config.model_card.distillation_type == "response"
+    assert config.model_card.dpo_applied is True

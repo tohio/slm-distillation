@@ -64,8 +64,22 @@ class ValidationConfig:
 
 @dataclass(frozen=True)
 class OutputConfig:
+    model_name: str
+    source_model_name: str
+    teacher_family: str
     run_dir: str
     checkpoint_dir: str
+    final_checkpoint_dir: str
+    export_repo: str
+
+
+@dataclass(frozen=True)
+class ModelCardConfig:
+    source_checkpoint: str
+    teacher_model: str
+    teacher_provider: str
+    distillation_type: str
+    dpo_applied: bool
 
 
 @dataclass(frozen=True)
@@ -76,6 +90,7 @@ class ResponseDistillConfig:
     data: ResponseDataConfig
     validation: ValidationConfig
     output: OutputConfig
+    model_card: ModelCardConfig
 
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
@@ -260,6 +275,7 @@ def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
     data_cfg = _require_mapping(data, "data")
     validation = _require_mapping(data, "validation")
     output = _require_mapping(data, "output")
+    model_card = _require_mapping(data, "model_card")
 
     mode = _require_str(distillation, "mode")
     if mode != "response":
@@ -305,8 +321,20 @@ def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
             max_retries=_require_int(validation, "max_retries"),
         ),
         output=OutputConfig(
+            model_name=_require_str(output, "model_name"),
+            source_model_name=_require_str(output, "source_model_name"),
+            teacher_family=_require_str(output, "teacher_family"),
             run_dir=_require_str(output, "run_dir"),
             checkpoint_dir=_require_str(output, "checkpoint_dir"),
+            final_checkpoint_dir=_require_str(output, "final_checkpoint_dir"),
+            export_repo=_require_str(output, "export_repo"),
+        ),
+        model_card=ModelCardConfig(
+            source_checkpoint=_require_str(model_card, "source_checkpoint"),
+            teacher_model=_require_str(model_card, "teacher_model"),
+            teacher_provider=_require_str(model_card, "teacher_provider"),
+            distillation_type=_require_str(model_card, "distillation_type"),
+            dpo_applied=_require_bool(model_card, "dpo_applied"),
         ),
     )
 

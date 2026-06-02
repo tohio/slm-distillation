@@ -32,5 +32,17 @@ validation:
   max_retries: 2
 
 output:
-  run_dir: runs/response_distill
-  checkpoint_dir: runs/response_distill/checkpoints
+  model_name: slm-125m-deepseek-distilled
+  source_model_name: slm-125m
+  teacher_family: deepseek
+  run_dir: runs/slm-125m-deepseek-distilled
+  checkpoint_dir: runs/slm-125m-deepseek-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/slm-125m-deepseek-distilled/dpo/checkpoints/final
+  export_repo: tohio/slm-125m-deepseek-distilled
+
+model_card:
+  source_checkpoint: tohio/slm-125m-instruct
+  teacher_model: deepseek/deepseek-v4-flash
+  teacher_provider: openrouter
+  distillation_type: response
+  dpo_applied: true
