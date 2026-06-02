@@ -6,7 +6,7 @@ from distill.generation.generate_responses import (
     generate_teacher_records,
     write_teacher_records,
 )
-from distill.generation.prompts import load_prompt_records
+from distill.generation.prompts import load_merged_prompt_records
 from distill.providers.base import GenerationRequest, GenerationResponse
 from distill.providers.openrouter import OpenRouterProvider
 from distill.utils.config import (
@@ -66,7 +66,7 @@ def main() -> None:
     if teacher.provider != "openrouter":
         raise SystemExit(f"Unsupported provider for generation: {teacher.provider}")
 
-    prompts = load_prompt_records(run_config.data.prompts_path)
+    prompts = load_merged_prompt_records(run_config.data.prompts_paths)
     if args.limit is not None:
         prompts = prompts[: args.limit]
 

@@ -2,7 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from distill.generation.prompts import load_prompt_records, parse_prompt_record
+from distill.generation.prompts import (
+    load_merged_prompt_records,
+    load_prompt_records,
+    parse_prompt_record,
+)
 
 
 def test_parse_prompt_record_accepts_valid_record() -> None:
@@ -61,3 +65,43 @@ def test_load_prompt_records_reads_seed_file() -> None:
 
     assert len(records) >= 1
     assert records[0].id.startswith("instruction-")
+
+
+def test_load_merged_prompt_records_preserves_file_order(tmp_path: Path) -> None:
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+
+    first.write_text(
+        '{"id":"p1","category":"instruction","prompt":"First.","metadata":{}}\n',
+        encoding="utf-8",
+    )
+    second.write_text(
+        '{"id":"p2","category":"code","prompt":"Second.","metadata":{}}\n',
+        encoding="utf-8",
+    )
+
+    records = load_merged_prompt_records([first, second])
+
+    assert [record.id for record in records] == ["p1", "p2"]
+
+
+def test_load_merged_prompt_records_rejects_duplicate_ids(tmp_path: Path) -> None:
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+
+    first.write_text(
+        '{"id":"p1","category":"instruction","prompt":"First.","metadata":{}}\n',
+        encoding="utf-8",
+    )
+    second.write_text(
+        '{"id":"p1","category":"code","prompt":"Second.","metadata":{}}\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="duplicate prompt id"):
+        load_merged_prompt_records([first, second])
+
+
+def test_load_merged_prompt_records_rejects_empty_paths() -> None:
+    with pytest.raises(ValueError, match="at least one prompt"):
+        load_merged_prompt_records([])

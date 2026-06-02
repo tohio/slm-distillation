@@ -18,6 +18,8 @@ distillation:
 
 data:
   prompts_path: data/prompts/instruction_seed.jsonl
+  prompts_paths:
+    - data/prompts/instruction_seed.jsonl
   raw_teacher_path: data/raw_teacher/deepseek_v4_flash.jsonl
   validated_path: data/validated/deepseek_v4_flash.jsonl
   rejected_path: data/rejected/deepseek_v4_flash.jsonl

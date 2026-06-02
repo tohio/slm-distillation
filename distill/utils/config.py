@@ -46,7 +46,8 @@ class ResponseDistillationSettings:
 
 @dataclass(frozen=True)
 class ResponseDataConfig:
-    prompts_path: str
+    prompts_path: str | None
+    prompts_paths: list[str]
     raw_teacher_path: str
     validated_path: str
     rejected_path: str
@@ -125,6 +126,56 @@ def _require_bool(data: dict[str, Any], key: str) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"config requires boolean '{key}'")
     return value
+
+
+def _optional_str(data: dict[str, Any], key: str) -> str | None:
+    value = data.get(key)
+
+    if value is None:
+        return None
+
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"config optional field '{key}' must be a non-empty string")
+
+    return value
+
+
+def _optional_str_list(data: dict[str, Any], key: str) -> list[str] | None:
+    value = data.get(key)
+
+    if value is None:
+        return None
+
+    if not isinstance(value, list) or not value:
+        raise ValueError(f"config optional field '{key}' must be a non-empty list")
+
+    result: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item:
+            raise ValueError(
+                f"config optional field '{key}' item {index} must be a non-empty string"
+            )
+        result.append(item)
+
+    return result
+
+
+def _prompt_paths_from_data_config(data_cfg: dict[str, Any]) -> tuple[str | None, list[str]]:
+    prompts_path = _optional_str(data_cfg, "prompts_path")
+    prompts_paths = _optional_str_list(data_cfg, "prompts_paths")
+
+    if prompts_paths is None:
+        if prompts_path is None:
+            raise ValueError("config requires 'data.prompts_path' or 'data.prompts_paths'")
+        return prompts_path, [prompts_path]
+
+    if prompts_path is not None and prompts_path not in prompts_paths:
+        raise ValueError(
+            "config cannot define both 'data.prompts_path' and "
+            "'data.prompts_paths' with different values"
+        )
+
+    return prompts_path, prompts_paths
 
 
 def load_teachers_config(path: str | Path) -> TeachersConfig:
@@ -234,7 +285,8 @@ def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
             continue_on_error=_require_bool(distillation, "continue_on_error"),
         ),
         data=ResponseDataConfig(
-            prompts_path=_require_str(data_cfg, "prompts_path"),
+            prompts_path=_prompt_paths_from_data_config(data_cfg)[0],
+            prompts_paths=_prompt_paths_from_data_config(data_cfg)[1],
             raw_teacher_path=_require_str(data_cfg, "raw_teacher_path"),
             validated_path=_require_str(data_cfg, "validated_path"),
             rejected_path=_require_str(data_cfg, "rejected_path"),

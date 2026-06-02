@@ -61,6 +61,8 @@ def test_load_response_distill_config_reads_default_file() -> None:
     assert config.distillation.max_retries == 2
     assert config.distillation.retry_delay_seconds == 2.0
     assert config.distillation.continue_on_error is True
+    assert config.data.prompts_path == "data/prompts/instruction_seed.jsonl"
+    assert config.data.prompts_paths == ["data/prompts/instruction_seed.jsonl"]
     assert config.data.raw_teacher_path == "data/raw_teacher/deepseek_v4_flash.jsonl"
     assert config.output.run_dir == "runs/response_distill"
 
@@ -91,6 +93,8 @@ distillation:
 
 data:
   prompts_path: prompts.jsonl
+  prompts_paths:
+    - prompts.jsonl
   raw_teacher_path: raw.jsonl
   validated_path: valid.jsonl
   rejected_path: rejected.jsonl
@@ -110,4 +114,108 @@ output:
     )
 
     with pytest.raises(ValueError, match="mode='response'"):
+        load_response_distill_config(path)
+
+
+def test_load_response_distill_config_accepts_prompts_paths_only(tmp_path: Path) -> None:
+    from distill.utils.config import load_response_distill_config
+
+    path = tmp_path / "response_distill.yaml"
+    path.write_text(
+        """
+teacher:
+  name: deepseek_v4_flash
+
+student:
+  name: slm-student
+  checkpoint_path: checkpoint
+  tokenizer_path: tokenizer
+
+distillation:
+  mode: response
+  target_tokens: 100
+  max_output_tokens: 32
+  temperature: 0.2
+  top_p: 0.9
+  max_retries: 2
+  retry_delay_seconds: 0.0
+  continue_on_error: true
+
+data:
+  prompts_paths:
+    - prompts-a.jsonl
+    - prompts-b.jsonl
+  raw_teacher_path: raw.jsonl
+  validated_path: valid.jsonl
+  rejected_path: rejected.jsonl
+  distill_dataset_path: distill.jsonl
+
+validation:
+  require_non_empty_output: true
+  reject_refusals_when_not_expected: true
+  reject_code_fences_for_function_body_tasks: true
+  max_retries: 2
+
+output:
+  run_dir: runs/test
+  checkpoint_dir: runs/test/checkpoints
+""",
+        encoding="utf-8",
+    )
+
+    config = load_response_distill_config(path)
+
+    assert config.data.prompts_path is None
+    assert config.data.prompts_paths == ["prompts-a.jsonl", "prompts-b.jsonl"]
+
+
+def test_load_response_distill_config_rejects_conflicting_prompt_fields(
+    tmp_path: Path,
+) -> None:
+    from distill.utils.config import load_response_distill_config
+
+    path = tmp_path / "response_distill.yaml"
+    path.write_text(
+        """
+teacher:
+  name: deepseek_v4_flash
+
+student:
+  name: slm-student
+  checkpoint_path: checkpoint
+  tokenizer_path: tokenizer
+
+distillation:
+  mode: response
+  target_tokens: 100
+  max_output_tokens: 32
+  temperature: 0.2
+  top_p: 0.9
+  max_retries: 2
+  retry_delay_seconds: 0.0
+  continue_on_error: true
+
+data:
+  prompts_path: prompts-a.jsonl
+  prompts_paths:
+    - prompts-b.jsonl
+  raw_teacher_path: raw.jsonl
+  validated_path: valid.jsonl
+  rejected_path: rejected.jsonl
+  distill_dataset_path: distill.jsonl
+
+validation:
+  require_non_empty_output: true
+  reject_refusals_when_not_expected: true
+  reject_code_fences_for_function_body_tasks: true
+  max_retries: 2
+
+output:
+  run_dir: runs/test
+  checkpoint_dir: runs/test/checkpoints
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="prompts_path"):
         load_response_distill_config(path)
