@@ -9,11 +9,12 @@ PYTHONPATH := .
 CONFIG ?= configs/response_distill.yaml
 TEACHERS_CONFIG ?= configs/teachers.yaml
 DPO_CONFIG ?= configs/dpo.yaml
+LOGIT_CONFIG ?= configs/logit_distill.yaml
 PREFERENCE_CONFIG ?= configs/preference.yaml
 EXPORT_CONFIG ?= configs/export.yaml
 LIMIT ?=
 
-.PHONY: help install test test-unit generate generate-dry-run validate dataset preference train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: help install test test-unit generate generate-dry-run validate dataset preference train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
 help:
 > @echo ""
@@ -74,6 +75,15 @@ dataset:
 preference:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_preference_dataset.py \
 >   --config $(PREFERENCE_CONFIG)
+
+train-logit:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_logit_distill.py \
+>   --config $(LOGIT_CONFIG)
+
+train-logit-dry-run:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_logit_distill.py \
+>   --config $(LOGIT_CONFIG) \
+>   --dry-run
 
 train-dpo:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \

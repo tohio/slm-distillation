@@ -16,12 +16,6 @@ Configuration files for teacher selection, distillation runs, validation rules, 
 | `validation.yaml` | Shared validation and filtering rules. |
 | `eval.yaml` | Evaluation config for base and distilled checkpoints. |
 
-## Output Naming
+## Logit Distillation
 
-Final exported model names use the source model and teacher family:
-
-    slm-125m-deepseek-distilled
-    slm-125m-groq-distilled
-    slm-125m-qwen-distilled
-
-Distillation method and DPO status are recorded in model card metadata, not in the model name.
+`logit_distill.yaml` requires a local teacher provider and tokenizer compatibility between teacher and student.

@@ -1,4 +1,3 @@
-
 # Training
 
 Student post-training stages.
@@ -8,7 +7,7 @@ Student post-training stages.
 | File | Purpose |
 |---|---|
 | `train_response_distill.py` | Response-distillation trainer. |
-| `train_logit_distill.py` | Logit-distillation trainer. |
+| `train_logit_distill.py` | Local logit-distillation trainer scaffold with tokenizer gate. |
 | `train_dpo.py` | DPO training stage scaffold. |
 
 ## Stages
@@ -19,4 +18,4 @@ Student post-training stages.
 | Logit distillation | Local teacher logits | Intermediate distilled checkpoint |
 | DPO | Preference pairs | Final DPO-aligned distilled checkpoint |
 
-Final exported models use the post-DPO checkpoint path defined in `configs/dpo.yaml`.
+Local logit distillation requires tokenizer compatibility between teacher and student.

@@ -198,6 +198,62 @@ class ExportConfig:
     export: ExportSettings
 
 
+@dataclass(frozen=True)
+class LogitTeacherConfig:
+    provider: str
+    model_name: str
+    checkpoint_path: str
+    tokenizer_path: str
+
+
+@dataclass(frozen=True)
+class LogitStudentConfig:
+    model_name: str
+    checkpoint_path: str
+    tokenizer_path: str
+
+
+@dataclass(frozen=True)
+class LogitDistillationSettings:
+    mode: str
+    temperature: float
+    alpha: float
+    max_length: int
+    per_device_train_batch_size: int
+    gradient_accumulation_steps: int
+    learning_rate: float
+    num_train_epochs: int
+    bf16: bool
+    seed: int
+
+
+@dataclass(frozen=True)
+class LogitCompatibilityConfig:
+    require_same_tokenizer: bool
+
+
+@dataclass(frozen=True)
+class LogitHardwareConfig:
+    single_gpu_required: bool
+    allowed_gpu_classes: list[str]
+
+
+@dataclass(frozen=True)
+class LogitOutputConfig:
+    run_dir: str
+    checkpoint_dir: str
+
+
+@dataclass(frozen=True)
+class LogitDistillConfig:
+    teacher: LogitTeacherConfig
+    student: LogitStudentConfig
+    distillation: LogitDistillationSettings
+    compatibility: LogitCompatibilityConfig
+    hardware: LogitHardwareConfig
+    output: LogitOutputConfig
+
+
 def load_yaml(path: str | Path) -> dict[str, Any]:
     config_path = Path(path)
 
@@ -571,6 +627,79 @@ def load_export_config(path: str | Path) -> ExportConfig:
             push_to_hub=_require_bool(export, "push_to_hub"),
             include_tokenizer=_require_bool(export, "include_tokenizer"),
             private=_require_bool(export, "private"),
+        ),
+    )
+
+def load_logit_distill_config(path: str | Path) -> LogitDistillConfig:
+    data = load_yaml(path)
+
+    teacher = _require_mapping(data, "teacher")
+    student = _require_mapping(data, "student")
+    distillation = _require_mapping(data, "distillation")
+    compatibility = _require_mapping(data, "compatibility")
+    hardware = _require_mapping(data, "hardware")
+    output = _require_mapping(data, "output")
+
+    provider = _require_str(teacher, "provider")
+    if provider != "local":
+        raise ValueError("Logit distillation requires local provider")
+
+    mode = _require_str(distillation, "mode")
+    if mode != "logit":
+        raise ValueError("logit_distill config requires distillation.mode='logit'")
+
+    allowed_gpu_classes = hardware.get("allowed_gpu_classes")
+    if not isinstance(allowed_gpu_classes, list) or not allowed_gpu_classes:
+        raise ValueError("hardware.allowed_gpu_classes must be a non-empty list")
+
+    normalized_gpu_classes: list[str] = []
+    for index, value in enumerate(allowed_gpu_classes):
+        if not isinstance(value, str) or not value:
+            raise ValueError(
+                f"hardware.allowed_gpu_classes item {index} must be a non-empty string"
+            )
+        normalized_gpu_classes.append(value)
+
+    return LogitDistillConfig(
+        teacher=LogitTeacherConfig(
+            provider=provider,
+            model_name=_require_str(teacher, "model_name"),
+            checkpoint_path=_require_str(teacher, "checkpoint_path"),
+            tokenizer_path=_require_str(teacher, "tokenizer_path"),
+        ),
+        student=LogitStudentConfig(
+            model_name=_require_str(student, "model_name"),
+            checkpoint_path=_require_str(student, "checkpoint_path"),
+            tokenizer_path=_require_str(student, "tokenizer_path"),
+        ),
+        distillation=LogitDistillationSettings(
+            mode=mode,
+            temperature=_require_float_or_int(distillation, "temperature"),
+            alpha=_require_float_or_int(distillation, "alpha"),
+            max_length=_require_int(distillation, "max_length"),
+            per_device_train_batch_size=_require_int(
+                distillation, "per_device_train_batch_size"
+            ),
+            gradient_accumulation_steps=_require_int(
+                distillation, "gradient_accumulation_steps"
+            ),
+            learning_rate=_require_float_or_int(distillation, "learning_rate"),
+            num_train_epochs=_require_int(distillation, "num_train_epochs"),
+            bf16=_require_bool(distillation, "bf16"),
+            seed=_require_int(distillation, "seed"),
+        ),
+        compatibility=LogitCompatibilityConfig(
+            require_same_tokenizer=_require_bool(
+                compatibility, "require_same_tokenizer"
+            ),
+        ),
+        hardware=LogitHardwareConfig(
+            single_gpu_required=_require_bool(hardware, "single_gpu_required"),
+            allowed_gpu_classes=normalized_gpu_classes,
+        ),
+        output=LogitOutputConfig(
+            run_dir=_require_str(output, "run_dir"),
+            checkpoint_dir=_require_str(output, "checkpoint_dir"),
         ),
     )
 
