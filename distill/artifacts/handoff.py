@@ -12,6 +12,8 @@ from urllib.parse import urlparse
 
 import yaml
 
+from distill.utils.env import get_env_value
+
 
 @dataclass(frozen=True)
 class ArtifactFile:
@@ -330,7 +332,24 @@ def _boto3_client() -> Any:
     except ImportError as exc:
         raise RuntimeError("boto3 is required for S3 artifact handoff") from exc
 
-    return boto3.client("s3")
+    access_key = get_env_value("AWS_ACCESS_KEY_ID")
+    secret_key = get_env_value("AWS_SECRET_ACCESS_KEY")
+    region = (
+        get_env_value("AWS_DEFAULT_REGION")
+        or get_env_value("AWS_REGION")
+        or "us-east-1"
+    )
+
+    if access_key and secret_key:
+        session = boto3.Session(
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name=region,
+        )
+        return session.client("s3")
+
+    session = boto3.Session(region_name=region)
+    return session.client("s3")
 
 
 def _list_s3_keys(client: Any, location: S3Location) -> set[str]:
