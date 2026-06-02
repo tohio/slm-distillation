@@ -30,9 +30,8 @@ def test_openrouter_build_payload() -> None:
     ]
 
 
-def test_openrouter_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    provider = OpenRouterProvider()
+def test_openrouter_requires_api_key(tmp_path) -> None:
+    provider = OpenRouterProvider(env_path=str(tmp_path / ".env"))
 
     request = GenerationRequest(
         prompt="test",

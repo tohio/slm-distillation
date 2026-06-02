@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from distill.providers.base import GenerationRequest, GenerationResponse
+from distill.utils.env import get_env_value
 
 
 OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -22,13 +22,18 @@ class OpenRouterPayload:
 class OpenRouterProvider:
     provider_name = "openrouter"
 
-    def __init__(self, api_key: str | None = None, timeout: float = 60.0) -> None:
-        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+    def __init__(
+        self,
+        api_key: str | None = None,
+        timeout: float = 60.0,
+        env_path: str = ".env",
+    ) -> None:
+        self.api_key = api_key or get_env_value("OPENROUTER_API_KEY", env_path)
         self.timeout = timeout
 
     def build_payload(self, request: GenerationRequest) -> OpenRouterPayload:
         if not self.api_key:
-            raise ValueError("OPENROUTER_API_KEY is required for OpenRouterProvider")
+            raise ValueError("OPENROUTER_API_KEY is required in .env for OpenRouterProvider")
 
         return OpenRouterPayload(
             url=OPENROUTER_CHAT_COMPLETIONS_URL,
