@@ -13,4 +13,5 @@ Command-line entrypoints for the distillation pipeline.
 | `train_response_distill.py` | Train a student with response distillation. |
 | `train_logit_distill.py` | Train a student with logit distillation. |
 | `train_dpo.py` | Run or inspect the DPO training stage. |
+| `export_model.py` | Generate model card and export final model variant. |
 | `run_eval.py` | Evaluate base and distilled checkpoints. |

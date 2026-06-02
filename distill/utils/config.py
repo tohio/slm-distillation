@@ -164,6 +164,40 @@ class PreferenceConfig:
     preference: PreferenceBuildSettings
 
 
+@dataclass(frozen=True)
+class ExportModelConfig:
+    model_name: str
+    checkpoint_path: str
+    tokenizer_path: str
+    export_repo: str
+
+
+@dataclass(frozen=True)
+class ExportModelCardConfig:
+    output_path: str
+    source_checkpoint: str
+    teacher_model: str
+    teacher_provider: str
+    distillation_type: str
+    dpo_applied: bool
+    preference_dataset: str
+    eval_results_path: str
+
+
+@dataclass(frozen=True)
+class ExportSettings:
+    push_to_hub: bool
+    include_tokenizer: bool
+    private: bool
+
+
+@dataclass(frozen=True)
+class ExportConfig:
+    model: ExportModelConfig
+    model_card: ExportModelCardConfig
+    export: ExportSettings
+
+
 def load_yaml(path: str | Path) -> dict[str, Any]:
     config_path = Path(path)
 
@@ -506,6 +540,37 @@ def load_preference_config(path: str | Path) -> PreferenceConfig:
                 preference, "require_non_empty_rejected"
             ),
             reject_identical_pairs=_require_bool(preference, "reject_identical_pairs"),
+        ),
+    )
+
+def load_export_config(path: str | Path) -> ExportConfig:
+    data = load_yaml(path)
+
+    model = _require_mapping(data, "model")
+    model_card = _require_mapping(data, "model_card")
+    export = _require_mapping(data, "export")
+
+    return ExportConfig(
+        model=ExportModelConfig(
+            model_name=_require_str(model, "model_name"),
+            checkpoint_path=_require_str(model, "checkpoint_path"),
+            tokenizer_path=_require_str(model, "tokenizer_path"),
+            export_repo=_require_str(model, "export_repo"),
+        ),
+        model_card=ExportModelCardConfig(
+            output_path=_require_str(model_card, "output_path"),
+            source_checkpoint=_require_str(model_card, "source_checkpoint"),
+            teacher_model=_require_str(model_card, "teacher_model"),
+            teacher_provider=_require_str(model_card, "teacher_provider"),
+            distillation_type=_require_str(model_card, "distillation_type"),
+            dpo_applied=_require_bool(model_card, "dpo_applied"),
+            preference_dataset=_require_str(model_card, "preference_dataset"),
+            eval_results_path=_require_str(model_card, "eval_results_path"),
+        ),
+        export=ExportSettings(
+            push_to_hub=_require_bool(export, "push_to_hub"),
+            include_tokenizer=_require_bool(export, "include_tokenizer"),
+            private=_require_bool(export, "private"),
         ),
     )
 

@@ -1,0 +1,20 @@
+model:
+  model_name: slm-125m-deepseek-distilled
+  checkpoint_path: runs/slm-125m-deepseek-distilled/dpo/checkpoints/final
+  tokenizer_path: ../slm/results/runs/125m/tokenizer
+  export_repo: tohio/slm-125m-deepseek-distilled
+
+model_card:
+  output_path: runs/slm-125m-deepseek-distilled/model_card.md
+  source_checkpoint: tohio/slm-125m-instruct
+  teacher_model: deepseek/deepseek-v4-flash
+  teacher_provider: openrouter
+  distillation_type: response
+  dpo_applied: true
+  preference_dataset: data/preference/dpo_pairs.jsonl
+  eval_results_path: runs/slm-125m-deepseek-distilled/eval/results.json
+
+export:
+  push_to_hub: false
+  include_tokenizer: true
+  private: false

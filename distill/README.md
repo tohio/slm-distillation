@@ -12,5 +12,6 @@ Core Python package for SLM distillation workflows.
 | `datasets/` | Conversion from validated responses to training datasets. |
 | `preference/` | Preference-pair dataset builders for DPO. |
 | `training/` | Response, logit, and DPO training stages. |
+| `export/` | Model-card generation and export planning. |
 | `eval/` | Evaluation and output comparison utilities. |
 | `utils/` | Shared config, IO, pricing, and logging helpers. |

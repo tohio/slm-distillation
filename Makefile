@@ -10,9 +10,10 @@ CONFIG ?= configs/response_distill.yaml
 TEACHERS_CONFIG ?= configs/teachers.yaml
 DPO_CONFIG ?= configs/dpo.yaml
 PREFERENCE_CONFIG ?= configs/preference.yaml
+EXPORT_CONFIG ?= configs/export.yaml
 LIMIT ?=
 
-.PHONY: help install test test-unit generate generate-dry-run validate dataset preference train-dpo train-dpo-dry-run response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: help install test test-unit generate generate-dry-run validate dataset preference train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
 help:
 > @echo ""
@@ -81,6 +82,15 @@ train-dpo:
 train-dpo-dry-run:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
 >   --config $(DPO_CONFIG) \
+>   --dry-run
+
+export:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/export_model.py \
+>   --config $(EXPORT_CONFIG)
+
+export-dry-run:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/export_model.py \
+>   --config $(EXPORT_CONFIG) \
 >   --dry-run
 
 response-pipeline: generate validate dataset
