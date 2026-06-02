@@ -33,6 +33,10 @@ validation:
 providers:
   groq:
     generation:
+      batch_size: 16
+      min_batch_size: 1
+      parallel_requests: 8
+      progress_interval: 25
       concurrency: 2
       max_requeues: 3
       exhausted_retryable_requeue_delay_seconds: 30.0

@@ -38,15 +38,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-tokens", type=int, default=None)
     parser.add_argument("--estimated-tokens-per-record", type=int, default=256)
     parser.add_argument("--allow-repeat-prompts", action="store_true")
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--min-batch-size", type=int, default=None)
+    parser.add_argument("--parallel-requests", type=int, default=None)
+    parser.add_argument("--progress-interval", type=int, default=None)
+    parser.add_argument("--no-resume", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
 
 def _teacher_map(teachers_config: Any) -> dict[str, Any]:
-    candidates = [
-        getattr(teachers_config, "teachers", None),
-        getattr(teachers_config, "models", None),
-    ]
+    candidates = [getattr(teachers_config, "teachers", None), getattr(teachers_config, "models", None)]
     for candidate in candidates:
         if isinstance(candidate, dict):
             return candidate
@@ -116,6 +118,7 @@ def main() -> None:
         )
 
     provider = _provider_for_name(teacher_provider, args.dry_run)
+    generation_cfg = _provider_generation_config(args.config, teacher_provider)
 
     if args.dry_run:
         controls = hosted_controls_from_mapping(
@@ -128,9 +131,7 @@ def main() -> None:
             }
         )
     else:
-        controls = hosted_controls_from_mapping(
-            _provider_generation_config(args.config, teacher_provider)
-        )
+        controls = hosted_controls_from_mapping(generation_cfg)
 
     result = run_hosted_generation(
         provider=provider,
@@ -143,9 +144,16 @@ def main() -> None:
         top_p=run_config.distillation.top_p,
         controls=controls,
         continue_on_error=run_config.distillation.continue_on_error,
+        batch_size=args.batch_size or generation_cfg.get("batch_size"),
+        min_batch_size=args.min_batch_size or generation_cfg.get("min_batch_size"),
+        parallel_requests=args.parallel_requests or generation_cfg.get("parallel_requests"),
+        progress_interval=args.progress_interval or generation_cfg.get("progress_interval"),
+        resume=not args.no_resume,
     )
 
     print(f"Wrote raw teacher records: {result.written}")
+    if result.skipped:
+        print(f"Skipped existing records: {result.skipped}")
     if result.errors:
         print(f"Generation errors: {result.errors}")
     print(f"Output: {result.output_path}")

@@ -33,6 +33,10 @@ validation:
 providers:
   openrouter:
     generation:
+      batch_size: 8
+      min_batch_size: 1
+      parallel_requests: 4
+      progress_interval: 25
       concurrency: 4
       max_requeues: 3
       exhausted_retryable_requeue_delay_seconds: 60.0

@@ -19,6 +19,10 @@ TARGET_TOKENS ?=
 TARGET_RECORDS ?=
 ESTIMATED_TOKENS_PER_RECORD ?= 256
 ALLOW_REPEAT_PROMPTS ?=
+BATCH_SIZE ?=
+MIN_BATCH_SIZE ?=
+PARALLEL_REQUESTS ?=
+PROGRESS_INTERVAL ?=
 
 .PHONY: build-prompts help install test test-unit generate generate-dry-run validate dataset token-report preference artifact-handoff verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
@@ -69,7 +73,11 @@ generate:
 >   $(if $(LIMIT),--limit $(LIMIT),) \
 >   $(if $(TARGET_TOKENS),--target-tokens $(TARGET_TOKENS),) \
 >   $(if $(ESTIMATED_TOKENS_PER_RECORD),--estimated-tokens-per-record $(ESTIMATED_TOKENS_PER_RECORD),) \
->   $(if $(ALLOW_REPEAT_PROMPTS),--allow-repeat-prompts,)
+>   $(if $(ALLOW_REPEAT_PROMPTS),--allow-repeat-prompts,) \
+>   $(if $(BATCH_SIZE),--batch-size $(BATCH_SIZE),) \
+>   $(if $(MIN_BATCH_SIZE),--min-batch-size $(MIN_BATCH_SIZE),) \
+>   $(if $(PARALLEL_REQUESTS),--parallel-requests $(PARALLEL_REQUESTS),) \
+>   $(if $(PROGRESS_INTERVAL),--progress-interval $(PROGRESS_INTERVAL),)
 
 generate-dry-run:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/generate_teacher_responses.py \
@@ -79,6 +87,10 @@ generate-dry-run:
 >   $(if $(TARGET_TOKENS),--target-tokens $(TARGET_TOKENS),) \
 >   $(if $(ESTIMATED_TOKENS_PER_RECORD),--estimated-tokens-per-record $(ESTIMATED_TOKENS_PER_RECORD),) \
 >   $(if $(ALLOW_REPEAT_PROMPTS),--allow-repeat-prompts,) \
+>   $(if $(BATCH_SIZE),--batch-size $(BATCH_SIZE),) \
+>   $(if $(MIN_BATCH_SIZE),--min-batch-size $(MIN_BATCH_SIZE),) \
+>   $(if $(PARALLEL_REQUESTS),--parallel-requests $(PARALLEL_REQUESTS),) \
+>   $(if $(PROGRESS_INTERVAL),--progress-interval $(PROGRESS_INTERVAL),) \
 >   --dry-run
 
 validate:

@@ -2,116 +2,245 @@ from __future__ import annotations
 
 import json
 import time
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from distill.generation.hosted_controls import (
-    AdaptiveRequestController,
-    HostedGenerationControls,
-    RetryableProviderExhaustedError,
-    generate_with_hosted_retries,
-)
 from distill.generation.prompts import PromptRecord
-from distill.providers.base import GenerationRequest
+from distill.providers.base import GenerationRequest, GenerationResponse
 
 
 @dataclass(frozen=True)
 class HostedGenerationResult:
-    written: int
-    errors: int
     output_path: str
+    written: int
+    skipped: int
+    errors: int
 
 
-def teacher_response_record(
+@dataclass(frozen=True)
+class BatchGenerationItem:
+    prompt: PromptRecord
+    output: str
+    response: GenerationResponse | None
+    error: str | None = None
+
+
+def build_batch_prompt(prompts: list[PromptRecord]) -> str:
+    items = [
+        {"id": prompt.id, "category": prompt.category, "prompt": prompt.prompt}
+        for prompt in prompts
+    ]
+    return (
+        "You are generating supervised distillation outputs.\n"
+        "Return ONLY a valid JSON array. Do not include markdown, code fences, or text outside JSON.\n"
+        "The array MUST contain exactly one object for each input item, in the same order.\n"
+        "Each output object MUST use this schema: {\"id\": string, \"output\": string}\n\n"
+        "Input items:\n"
+        f"{json.dumps(items, ensure_ascii=False, indent=2)}"
+    )
+
+
+def _chunked(items: list[PromptRecord], size: int) -> list[list[PromptRecord]]:
+    return [items[index : index + size] for index in range(0, len(items), size)]
+
+
+def _extract_json_array(text: str) -> list[Any]:
+    stripped = text.strip()
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError:
+        start = stripped.find("[")
+        end = stripped.rfind("]")
+        if start == -1 or end == -1 or end <= start:
+            raise
+        parsed = json.loads(stripped[start : end + 1])
+
+    if not isinstance(parsed, list):
+        raise ValueError("batch response must be a JSON array")
+    return parsed
+
+
+def parse_batch_response(*, prompts: list[PromptRecord], response_text: str) -> dict[str, str]:
+    parsed = _extract_json_array(response_text)
+    if len(parsed) != len(prompts):
+        raise ValueError(
+            f"batch response item count mismatch: expected={len(prompts)}, got={len(parsed)}"
+        )
+
+    outputs: dict[str, str] = {}
+    for index, item in enumerate(parsed):
+        if not isinstance(item, dict):
+            raise ValueError(f"batch response item {index} must be an object")
+        expected_id = prompts[index].id
+        item_id = item.get("id")
+        output = item.get("output")
+        if item_id != expected_id:
+            raise ValueError(
+                f"batch response id mismatch at index {index}: expected={expected_id}, got={item_id}"
+            )
+        if not isinstance(output, str) or not output.strip():
+            raise ValueError(f"batch response item {index} has empty output")
+        outputs[expected_id] = output.strip()
+    return outputs
+
+
+def _record(
     *,
     prompt: PromptRecord,
+    output: str,
     teacher_model: str,
     provider_name: str,
-    response_text: str,
-    input_tokens: int | None,
-    output_tokens: int | None,
+    response: GenerationResponse | None,
     error: str | None,
 ) -> dict[str, Any]:
     return {
+        "id": prompt.id,
         "prompt_id": prompt.id,
         "category": prompt.category,
         "prompt": prompt.prompt,
-        "teacher": teacher_model,
+        "output": output,
+        "response": output,
+        "teacher_model": teacher_model,
+        "teacher_provider": provider_name,
         "provider": provider_name,
-        "response": response_text,
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
+        "model": teacher_model,
+        "input_tokens": response.input_tokens if response is not None else None,
+        "output_tokens": response.output_tokens if response is not None else None,
         "metadata": prompt.metadata,
+        "raw": response.raw if response is not None else None,
         "error": error,
     }
 
 
-def error_teacher_response_record(
+def _completed_ids(output_path: Path) -> set[str]:
+    ids: set[str] = set()
+    if not output_path.exists():
+        return ids
+    with output_path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            prompt_id = row.get("prompt_id") or row.get("id")
+            if isinstance(prompt_id, str):
+                ids.add(prompt_id)
+    return ids
+
+
+def _dry_run_batch(
+    prompts: list[PromptRecord],
     *,
-    prompt: PromptRecord,
     teacher_model: str,
     provider_name: str,
-    error: str,
-) -> dict[str, Any]:
-    return teacher_response_record(
-        prompt=prompt,
-        teacher_model=teacher_model,
-        provider_name=provider_name,
-        response_text="",
-        input_tokens=None,
-        output_tokens=None,
-        error=error,
-    )
+) -> list[BatchGenerationItem]:
+    return [
+        BatchGenerationItem(
+            prompt=prompt,
+            output=f"Dry run response for: {prompt.prompt}",
+            response=GenerationResponse(
+                text=f"Dry run response for: {prompt.prompt}",
+                model=teacher_model,
+                provider=provider_name,
+                input_tokens=len(prompt.prompt.split()),
+                output_tokens=8,
+                raw={"dry_run": True, "batched": True},
+            ),
+        )
+        for prompt in prompts
+    ]
 
 
-def write_jsonl(path: str | Path, records: list[dict[str, Any]]) -> int:
-    output_path = Path(path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with output_path.open("w", encoding="utf-8") as handle:
-        for record in records:
-            handle.write(json.dumps(record, sort_keys=True))
-            handle.write("\n")
-
-    return len(records)
-
-
-def _generate_one(
+def _generate_batch_once(
     *,
     provider: Any,
-    prompt: PromptRecord,
+    prompts: list[PromptRecord],
     teacher_model: str,
     provider_name: str,
     max_output_tokens: int,
     temperature: float,
     top_p: float,
-    controls: HostedGenerationControls,
-    controller: AdaptiveRequestController,
-) -> dict[str, Any]:
-    request = GenerationRequest(
-        prompt=prompt.prompt,
-        model=teacher_model,
-        max_output_tokens=max_output_tokens,
-        temperature=temperature,
-        top_p=top_p,
+) -> list[BatchGenerationItem]:
+    if getattr(provider, "provider_name", "") == "dry_run":
+        return _dry_run_batch(prompts, teacher_model=teacher_model, provider_name=provider_name)
+
+    response = provider.generate(
+        GenerationRequest(
+            prompt=build_batch_prompt(prompts),
+            model=teacher_model,
+            max_output_tokens=max_output_tokens * len(prompts),
+            temperature=temperature,
+            top_p=top_p,
+        )
     )
-    response = generate_with_hosted_retries(
-        provider=provider,
-        request=request,
-        controls=controls,
-        controller=controller,
-    )
-    return teacher_response_record(
-        prompt=prompt,
-        teacher_model=response.model or teacher_model,
-        provider_name=response.provider or provider_name,
-        response_text=response.text,
-        input_tokens=response.input_tokens,
-        output_tokens=response.output_tokens,
-        error=None,
-    )
+    outputs = parse_batch_response(prompts=prompts, response_text=response.text)
+    return [
+        BatchGenerationItem(prompt=prompt, output=outputs[prompt.id], response=response)
+        for prompt in prompts
+    ]
+
+
+def _generate_batch_with_split(
+    *,
+    provider: Any,
+    prompts: list[PromptRecord],
+    teacher_model: str,
+    provider_name: str,
+    max_output_tokens: int,
+    temperature: float,
+    top_p: float,
+    min_batch_size: int,
+    continue_on_error: bool,
+) -> list[BatchGenerationItem]:
+    try:
+        return _generate_batch_once(
+            provider=provider,
+            prompts=prompts,
+            teacher_model=teacher_model,
+            provider_name=provider_name,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+            top_p=top_p,
+        )
+    except Exception as exc:
+        if len(prompts) > min_batch_size:
+            midpoint = len(prompts) // 2
+            return [
+                *_generate_batch_with_split(
+                    provider=provider,
+                    prompts=prompts[:midpoint],
+                    teacher_model=teacher_model,
+                    provider_name=provider_name,
+                    max_output_tokens=max_output_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    min_batch_size=min_batch_size,
+                    continue_on_error=continue_on_error,
+                ),
+                *_generate_batch_with_split(
+                    provider=provider,
+                    prompts=prompts[midpoint:],
+                    teacher_model=teacher_model,
+                    provider_name=provider_name,
+                    max_output_tokens=max_output_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    min_batch_size=min_batch_size,
+                    continue_on_error=continue_on_error,
+                ),
+            ]
+        if not continue_on_error:
+            raise
+        return [
+            BatchGenerationItem(prompt=prompt, output="", response=None, error=str(exc))
+            for prompt in prompts
+        ]
+
+
+def _controls_value(controls: Any, name: str, default: Any) -> Any:
+    return getattr(controls, name, default) if controls is not None else default
 
 
 def run_hosted_generation(
@@ -124,117 +253,110 @@ def run_hosted_generation(
     max_output_tokens: int,
     temperature: float,
     top_p: float,
-    controls: HostedGenerationControls,
+    controls: Any,
     continue_on_error: bool,
+    batch_size: int | None = None,
+    min_batch_size: int | None = None,
+    parallel_requests: int | None = None,
+    progress_interval: int | None = None,
+    resume: bool = True,
 ) -> HostedGenerationResult:
-    controller = AdaptiveRequestController(controls)
-    records_by_index: dict[int, dict[str, Any]] = {}
-    requeues: dict[int, int] = {}
-    pending_indices = list(range(len(prompts)))
-    active: dict[Any, int] = {}
-    errors = 0
-    stop_submitting = False
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
 
-    with ThreadPoolExecutor(max_workers=max(1, controls.concurrency)) as executor:
-        while pending_indices and len(active) < controls.concurrency:
-            index = pending_indices.pop(0)
-            prompt = prompts[index]
-            active[
+    effective_batch_size = int(batch_size or _controls_value(controls, "batch_size", 1) or 1)
+    effective_min_batch_size = int(min_batch_size or _controls_value(controls, "min_batch_size", 1) or 1)
+    effective_parallel = int(
+        parallel_requests
+        or _controls_value(controls, "parallel_requests", None)
+        or _controls_value(controls, "concurrency", 1)
+        or 1
+    )
+    effective_progress_interval = int(
+        progress_interval or _controls_value(controls, "progress_interval", 25) or 25
+    )
+
+    if effective_batch_size <= 0:
+        raise ValueError("batch_size must be greater than zero")
+    if effective_min_batch_size <= 0:
+        raise ValueError("min_batch_size must be greater than zero")
+    if effective_min_batch_size > effective_batch_size:
+        raise ValueError("min_batch_size cannot be greater than batch_size")
+    if effective_parallel <= 0:
+        raise ValueError("parallel_requests must be greater than zero")
+
+    existing_ids = _completed_ids(output) if resume else set()
+    selected = [prompt for prompt in prompts if prompt.id not in existing_ids]
+    skipped = len(prompts) - len(selected)
+    total = len(selected)
+
+    if total == 0:
+        return HostedGenerationResult(str(output), 0, skipped, 0)
+
+    print(
+        "Hosted generation plan: "
+        f"prompts={len(prompts)} skipped={skipped} remaining={total} "
+        f"batch_size={effective_batch_size} min_batch_size={effective_min_batch_size} "
+        f"parallel_requests={effective_parallel}"
+    )
+
+    batches = _chunked(selected, effective_batch_size)
+    written = 0
+    errors = 0
+    completed = 0
+    start = time.time()
+
+    with output.open("a", encoding="utf-8") as handle:
+        with ThreadPoolExecutor(max_workers=effective_parallel) as executor:
+            futures = [
                 executor.submit(
-                    _generate_one,
+                    _generate_batch_with_split,
                     provider=provider,
-                    prompt=prompt,
+                    prompts=batch,
                     teacher_model=teacher_model,
                     provider_name=provider_name,
                     max_output_tokens=max_output_tokens,
                     temperature=temperature,
                     top_p=top_p,
-                    controls=controls,
-                    controller=controller,
+                    min_batch_size=effective_min_batch_size,
+                    continue_on_error=continue_on_error,
                 )
-            ] = index
+                for batch in batches
+            ]
 
-        while active:
-            done, _ = wait(set(active), return_when=FIRST_COMPLETED)
-            for future in done:
-                index = active.pop(future)
-                prompt = prompts[index]
-
-                try:
-                    records_by_index[index] = future.result()
-                except RetryableProviderExhaustedError as exc:
-                    requeues[index] = requeues.get(index, 0) + 1
-                    if requeues[index] <= controls.max_requeues:
-                        if controls.exhausted_retryable_requeue_delay_seconds > 0:
-                            time.sleep(controls.exhausted_retryable_requeue_delay_seconds)
-                        active[
-                            executor.submit(
-                                _generate_one,
-                                provider=provider,
-                                prompt=prompt,
+            for future in as_completed(futures):
+                items = future.result()
+                for item in items:
+                    if item.error:
+                        errors += 1
+                    else:
+                        written += 1
+                    handle.write(
+                        json.dumps(
+                            _record(
+                                prompt=item.prompt,
+                                output=item.output,
                                 teacher_model=teacher_model,
                                 provider_name=provider_name,
-                                max_output_tokens=max_output_tokens,
-                                temperature=temperature,
-                                top_p=top_p,
-                                controls=controls,
-                                controller=controller,
-                            )
-                        ] = index
-                        continue
-
-                    errors += 1
-                    if not continue_on_error:
-                        raise RuntimeError(
-                            f"Hosted generation failed for prompt_id={prompt.id}"
-                        ) from exc
-                    records_by_index[index] = error_teacher_response_record(
-                        prompt=prompt,
-                        teacher_model=teacher_model,
-                        provider_name=provider_name,
-                        error=str(exc),
-                    )
-                except Exception as exc:
-                    errors += 1
-                    if not continue_on_error:
-                        raise RuntimeError(
-                            f"Fatal hosted generation failure for prompt_id={prompt.id}"
-                        ) from exc
-                    records_by_index[index] = error_teacher_response_record(
-                        prompt=prompt,
-                        teacher_model=teacher_model,
-                        provider_name=provider_name,
-                        error=str(exc),
-                    )
-                    stop_submitting = True
-
-                while (
-                    not stop_submitting
-                    and pending_indices
-                    and len(active) < controls.concurrency
-                ):
-                    next_index = pending_indices.pop(0)
-                    next_prompt = prompts[next_index]
-                    active[
-                        executor.submit(
-                            _generate_one,
-                            provider=provider,
-                            prompt=next_prompt,
-                            teacher_model=teacher_model,
-                            provider_name=provider_name,
-                            max_output_tokens=max_output_tokens,
-                            temperature=temperature,
-                            top_p=top_p,
-                            controls=controls,
-                            controller=controller,
+                                response=item.response,
+                                error=item.error,
+                            ),
+                            ensure_ascii=False,
+                            sort_keys=True,
                         )
-                    ] = next_index
+                    )
+                    handle.write("\n")
+                    completed += 1
 
-    ordered_records = [records_by_index[index] for index in sorted(records_by_index)]
-    written = write_jsonl(output_path, ordered_records)
+                handle.flush()
 
-    return HostedGenerationResult(
-        written=written,
-        errors=errors,
-        output_path=str(output_path),
-    )
+                if completed % effective_progress_interval == 0 or completed >= total:
+                    elapsed = max(0.001, time.time() - start)
+                    print(
+                        "Hosted generation progress: "
+                        f"completed={completed}/{total} written={written} errors={errors} "
+                        f"skipped={skipped} elapsed_seconds={elapsed:.1f} "
+                        f"records_per_second={completed / elapsed:.2f}"
+                    )
+
+    return HostedGenerationResult(str(output), written, skipped, errors)
