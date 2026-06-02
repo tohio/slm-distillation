@@ -7,7 +7,7 @@ Teacher inference provider adapters.
 | Provider | Response Distillation | Logit Distillation | Status |
 |---|---:|---:|---|
 | OpenRouter | yes | no | implemented |
-| Groq | yes | no | pending |
+| Groq | yes | no | implemented |
 | Local | yes | yes | pending |
 | DeepSeek direct API | no | no | unsupported |
 

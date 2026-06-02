@@ -8,6 +8,7 @@ from distill.generation.generate_responses import (
 )
 from distill.generation.prompts import load_merged_prompt_records
 from distill.providers.base import GenerationRequest, GenerationResponse
+from distill.providers.groq import GroqProvider
 from distill.providers.openrouter import OpenRouterProvider
 from distill.utils.config import (
     load_response_distill_config,
@@ -63,14 +64,21 @@ def main() -> None:
 
     teacher = teachers_config.teachers[teacher_key]
 
-    if teacher.provider != "openrouter":
+    if teacher.provider not in {"openrouter", "groq"}:
         raise SystemExit(f"Unsupported provider for generation: {teacher.provider}")
 
     prompts = load_merged_prompt_records(run_config.data.prompts_paths)
     if args.limit is not None:
         prompts = prompts[: args.limit]
 
-    provider = DryRunProvider() if args.dry_run else OpenRouterProvider()
+    if args.dry_run:
+        provider = DryRunProvider()
+    elif teacher.provider == "openrouter":
+        provider = OpenRouterProvider()
+    elif teacher.provider == "groq":
+        provider = GroqProvider()
+    else:
+        raise SystemExit(f"Unsupported provider for generation: {teacher.provider}")
 
     records = generate_teacher_records(
         prompts=prompts,

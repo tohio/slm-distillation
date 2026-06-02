@@ -30,3 +30,11 @@ teachers:
     mode: response
     purpose: smoke_test
     distillation_allowed: policy_gated
+
+  groq_llama_3_3_70b_versatile:
+    provider: groq
+    model: llama-3.3-70b-versatile
+    mode: response
+    purpose: groq_response_distillation_smoke_test
+    distillation_allowed: verify
+
