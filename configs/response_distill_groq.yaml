@@ -1,0 +1,36 @@
+teacher:
+  name: groq_llama_3_3_70b_versatile
+
+student:
+  name: slm-student
+  checkpoint_path: ../slm/results/runs/student/final
+  tokenizer_path: ../slm/results/runs/student/tokenizer
+
+distillation:
+  mode: response
+  target_tokens: 50000000
+  max_output_tokens: 1024
+  temperature: 0.2
+  top_p: 0.9
+  max_retries: 2
+  retry_delay_seconds: 2.0
+  continue_on_error: true
+
+data:
+  prompts_path: data/prompts/instruction_seed.jsonl
+  prompts_paths:
+    - data/prompts/instruction_seed.jsonl
+  raw_teacher_path: data/raw_teacher/groq_llama_3_3_70b_versatile.jsonl
+  validated_path: data/validated/groq_llama_3_3_70b_versatile.jsonl
+  rejected_path: data/rejected/groq_llama_3_3_70b_versatile.jsonl
+  distill_dataset_path: data/distill/groq_response_distill.jsonl
+
+validation:
+  require_non_empty_output: true
+  reject_refusals_when_not_expected: true
+  reject_code_fences_for_function_body_tasks: true
+  max_retries: 2
+
+output:
+  run_dir: runs/groq_response_distill
+  checkpoint_dir: runs/groq_response_distill/checkpoints
