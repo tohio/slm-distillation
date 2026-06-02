@@ -34,6 +34,9 @@ def validate_teacher_response(
     reject_refusals_when_not_expected: bool = True,
     reject_code_fences_for_function_body_tasks: bool = True,
 ) -> ValidationResult:
+    if record.error:
+        return ValidationResult(accepted=False, reason="generation_error")
+
     response = record.response.strip()
 
     if require_non_empty_output and not response:

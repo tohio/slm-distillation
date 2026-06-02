@@ -58,6 +58,9 @@ def test_load_response_distill_config_reads_default_file() -> None:
     assert config.student.name == "slm-student"
     assert config.distillation.mode == "response"
     assert config.distillation.target_tokens == 50000000
+    assert config.distillation.max_retries == 2
+    assert config.distillation.retry_delay_seconds == 2.0
+    assert config.distillation.continue_on_error is True
     assert config.data.raw_teacher_path == "data/raw_teacher/deepseek_v4_flash.jsonl"
     assert config.output.run_dir == "runs/response_distill"
 
@@ -82,6 +85,9 @@ distillation:
   max_output_tokens: 32
   temperature: 0.2
   top_p: 0.9
+  max_retries: 2
+  retry_delay_seconds: 0.0
+  continue_on_error: true
 
 data:
   prompts_path: prompts.jsonl

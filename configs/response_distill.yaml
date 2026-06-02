@@ -12,6 +12,9 @@ distillation:
   max_output_tokens: 1024
   temperature: 0.2
   top_p: 0.9
+  max_retries: 2
+  retry_delay_seconds: 2.0
+  continue_on_error: true
 
 data:
   prompts_path: data/prompts/instruction_seed.jsonl

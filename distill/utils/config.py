@@ -39,6 +39,9 @@ class ResponseDistillationSettings:
     max_output_tokens: int
     temperature: float
     top_p: float
+    max_retries: int
+    retry_delay_seconds: float
+    continue_on_error: bool
 
 
 @dataclass(frozen=True)
@@ -224,6 +227,11 @@ def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
             max_output_tokens=_require_int(distillation, "max_output_tokens"),
             temperature=_require_float_or_int(distillation, "temperature"),
             top_p=_require_float_or_int(distillation, "top_p"),
+            max_retries=_require_int(distillation, "max_retries"),
+            retry_delay_seconds=_require_float_or_int(
+                distillation, "retry_delay_seconds"
+            ),
+            continue_on_error=_require_bool(distillation, "continue_on_error"),
         ),
         data=ResponseDataConfig(
             prompts_path=_require_str(data_cfg, "prompts_path"),

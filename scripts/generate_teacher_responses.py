@@ -79,6 +79,9 @@ def main() -> None:
         max_output_tokens=run_config.distillation.max_output_tokens,
         temperature=run_config.distillation.temperature,
         top_p=run_config.distillation.top_p,
+        max_retries=run_config.distillation.max_retries,
+        retry_delay_seconds=run_config.distillation.retry_delay_seconds,
+        continue_on_error=run_config.distillation.continue_on_error,
     )
 
     count = write_teacher_records(run_config.data.raw_teacher_path, records)

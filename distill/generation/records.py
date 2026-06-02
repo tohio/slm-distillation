@@ -17,6 +17,7 @@ class TeacherResponseRecord:
     input_tokens: int | None
     output_tokens: int | None
     metadata: dict[str, Any]
+    error: str | None = None
 
 
 def write_jsonl(path: str | Path, records: Iterable[TeacherResponseRecord]) -> int:
@@ -76,6 +77,7 @@ def parse_teacher_response_record(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         metadata=raw["metadata"],
+        error=raw.get("error"),
     )
 
 
