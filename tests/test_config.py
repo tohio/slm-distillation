@@ -273,12 +273,12 @@ def test_load_response_distill_config_reads_groq_model_naming() -> None:
 
     config = load_response_distill_config("configs/response_distill_groq.yaml")
 
-    assert config.teacher_name == "groq_llama_3_3_70b_versatile"
+    assert config.teacher_name == "groq_gpt_oss_20b"
     assert config.output.model_name == "slm-125m-groq-distilled"
     assert config.output.source_model_name == "slm-125m"
     assert config.output.teacher_family == "groq"
     assert config.output.export_repo == "tohio/slm-125m-groq-distilled"
-    assert config.model_card.teacher_model == "llama-3.3-70b-versatile"
+    assert config.model_card.teacher_model == "openai/gpt-oss-20b"
     assert config.model_card.teacher_provider == "groq"
     assert config.model_card.distillation_type == "response"
     assert config.model_card.dpo_applied is True

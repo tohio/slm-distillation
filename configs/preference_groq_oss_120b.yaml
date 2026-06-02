@@ -1,0 +1,13 @@
+source:
+  validated_teacher_path: data/validated/groq_gpt_oss_120b.jsonl
+  rejected_response_path: null
+
+data:
+  output_path: data/preference/dpo_pairs.jsonl
+  rejected_path: data/rejected/preference_rejected.jsonl
+
+preference:
+  default_rejected_response: "I do not know."
+  require_non_empty_chosen: true
+  require_non_empty_rejected: true
+  reject_identical_pairs: true

@@ -1,5 +1,5 @@
 teacher:
-  name: groq_gpt_oss_20b
+  name: groq_gpt_oss_120b
 
 student:
   name: slm-student
@@ -19,10 +19,10 @@ distillation:
 data:
   prompts_paths:
   - data/prompts/built_prompts.jsonl
-  raw_teacher_path: data/raw_teacher/groq_gpt_oss_20b.jsonl
-  validated_path: data/validated/groq_gpt_oss_20b.jsonl
-  rejected_path: data/rejected/groq_gpt_oss_20b.jsonl
-  distill_dataset_path: data/distill/groq_response_distill.jsonl
+  raw_teacher_path: data/raw_teacher/groq_gpt_oss_120b.jsonl
+  validated_path: data/validated/groq_gpt_oss_120b.jsonl
+  rejected_path: data/rejected/groq_gpt_oss_120b.jsonl
+  distill_dataset_path: data/distill/groq_oss_120b_response_distill.jsonl
 
 validation:
   require_non_empty_output: true
@@ -57,17 +57,17 @@ providers:
       adaptive_cooldown_multiplier: 2.0
 
 output:
-  model_name: slm-125m-groq-distilled
+  model_name: slm-125m-groq-oss-120b-distilled
   source_model_name: slm-125m
   teacher_family: groq
-  run_dir: runs/slm-125m-groq-distilled
-  checkpoint_dir: runs/slm-125m-groq-distilled/response_distill/checkpoints
-  final_checkpoint_dir: runs/slm-125m-groq-distilled/dpo/checkpoints/final
-  export_repo: tohio/slm-125m-groq-distilled
+  run_dir: runs/slm-125m-groq-oss-120b-distilled
+  checkpoint_dir: runs/slm-125m-groq-oss-120b-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/slm-125m-groq-oss-120b-distilled/dpo/checkpoints/final
+  export_repo: tohio/slm-125m-groq-oss-120b-distilled
 
 model_card:
   source_checkpoint: tohio/slm-125m-instruct
-  teacher_model: openai/gpt-oss-20b
+  teacher_model: openai/gpt-oss-120b
   teacher_provider: groq
   distillation_type: response
   dpo_applied: true

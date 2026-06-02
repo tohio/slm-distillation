@@ -1,0 +1,17 @@
+artifact:
+  run_name: slm-125m-groq-llama-3-1-8b-instant-distilled
+  backend: s3
+  s3_bucket_env: S3_BUCKET
+  s3_prefix_env: S3_PREFIX
+  local_dir: artifacts/slm-125m-groq-llama-3-1-8b-instant-distilled
+  bundle_path: artifacts/slm-125m-groq-llama-3-1-8b-instant-distilled.tar.gz
+  delete_remote_extra: true
+  required:
+    - data/distill/groq_llama_3_1_8b_instant_response_distill.jsonl
+    - data/preference/dpo_pairs.jsonl
+  include:
+    - data/raw_teacher/*.jsonl
+    - data/validated/*.jsonl
+    - data/rejected/*.jsonl
+    - data/distill/*.jsonl
+    - data/preference/*.jsonl

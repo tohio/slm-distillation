@@ -38,3 +38,30 @@ teachers:
     purpose: groq_response_distillation_smoke_test
     distillation_allowed: verify
 
+  groq_gpt_oss_20b:
+    provider: groq
+    model: openai/gpt-oss-20b
+    mode: response
+    purpose: cost-sensitive default Groq teacher for response distillation
+    distillation_allowed: true
+
+  groq_gpt_oss_120b:
+    provider: groq
+    model: openai/gpt-oss-120b
+    mode: response
+    purpose: stronger GPT-OSS Groq comparison teacher
+    distillation_allowed: true
+
+  groq_qwen3_32b:
+    provider: groq
+    model: qwen/qwen3-32b
+    mode: response
+    purpose: Qwen Groq comparison teacher
+    distillation_allowed: true
+
+  groq_llama_3_1_8b_instant:
+    provider: groq
+    model: llama-3.1-8b-instant
+    mode: response
+    purpose: cost-sensitive Llama Groq comparison teacher
+    distillation_allowed: true
