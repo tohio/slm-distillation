@@ -26,7 +26,8 @@ class ArtifactFile:
 class ArtifactConfig:
     run_name: str
     backend: str
-    s3_uri: str
+    s3_bucket_env: str
+    s3_prefix_env: str
     local_dir: str
     bundle_path: str
     delete_remote_extra: bool
@@ -100,13 +101,33 @@ def load_artifact_config(path: str | Path) -> ArtifactConfig:
     return ArtifactConfig(
         run_name=_require_str(artifact, "run_name"),
         backend=backend,
-        s3_uri=_require_str(artifact, "s3_uri"),
+        s3_bucket_env=_require_str(artifact, "s3_bucket_env"),
+        s3_prefix_env=_require_str(artifact, "s3_prefix_env"),
         local_dir=_require_str(artifact, "local_dir"),
         bundle_path=_require_str(artifact, "bundle_path"),
         delete_remote_extra=_require_bool(artifact, "delete_remote_extra"),
         required=_require_str_list(artifact, "required"),
         include=_require_str_list(artifact, "include"),
     )
+
+
+def resolve_s3_uri(config: ArtifactConfig) -> str:
+    bucket = get_env_value(config.s3_bucket_env)
+    prefix = get_env_value(config.s3_prefix_env)
+
+    if not bucket:
+        raise ValueError(
+            f"S3 bucket environment variable is not set: {config.s3_bucket_env}"
+        )
+
+    if prefix is None:
+        prefix = ""
+
+    normalized_prefix = prefix.strip("/")
+    if normalized_prefix:
+        return f"s3://{bucket}/{normalized_prefix}/{config.run_name}/"
+
+    return f"s3://{bucket}/{config.run_name}/"
 
 
 def parse_s3_uri(uri: str) -> S3Location:
@@ -385,7 +406,8 @@ def push_artifacts(
     root_path = Path(root)
     result = stage_artifacts(config, root=root_path)
 
-    location = parse_s3_uri(config.s3_uri)
+    s3_uri = resolve_s3_uri(config)
+    location = parse_s3_uri(s3_uri)
     local_dir = root_path / config.local_dir
     client = _boto3_client()
 
@@ -409,7 +431,7 @@ def push_artifacts(
         file_count=result.file_count,
         total_bytes=result.total_bytes,
         manifest_path=result.manifest_path,
-        s3_uri=config.s3_uri,
+        s3_uri=s3_uri,
     )
 
 
@@ -420,12 +442,13 @@ def pull_artifacts(
 ) -> ArtifactResult:
     config = load_artifact_config(config_path)
     root_path = Path(root)
-    location = parse_s3_uri(config.s3_uri)
+    s3_uri = resolve_s3_uri(config)
+    location = parse_s3_uri(s3_uri)
     client = _boto3_client()
 
     keys = sorted(_list_s3_keys(client, location))
     if not keys:
-        raise FileNotFoundError(f"No artifact objects found at {config.s3_uri}")
+        raise FileNotFoundError(f"No artifact objects found at {s3_uri}")
 
     copied_files = 0
     total_bytes = 0
@@ -450,5 +473,5 @@ def pull_artifacts(
         file_count=copied_files,
         total_bytes=total_bytes,
         manifest_path=str(manifest_path),
-        s3_uri=config.s3_uri,
+        s3_uri=s3_uri,
     )
