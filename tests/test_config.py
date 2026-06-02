@@ -61,7 +61,8 @@ def test_load_response_distill_config_reads_default_file() -> None:
     assert config.distillation.max_retries == 2
     assert config.distillation.retry_delay_seconds == 2.0
     assert config.distillation.continue_on_error is True
-    assert config.data.prompts_path == "data/prompts/instruction_seed.jsonl"
+    assert config.data.prompts_path is None
+    assert config.data.prompts_paths == ["data/prompts/built_prompts.jsonl"]
     assert config.data.prompts_paths == ["data/prompts/instruction_seed.jsonl"]
     assert config.data.raw_teacher_path == "data/raw_teacher/deepseek_v4_flash.jsonl"
     assert config.output.model_name == "slm-125m-deepseek-distilled"
