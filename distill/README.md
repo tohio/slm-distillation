@@ -10,6 +10,7 @@ Core Python package for SLM distillation workflows.
 | `generation/` | Prompt loading and teacher response generation. |
 | `validation/` | Schema checks and quality filters. |
 | `datasets/` | Conversion from validated responses to training datasets. |
-| `training/` | Response and logit distillation training code. |
+| `preference/` | Preference-pair dataset builders for DPO. |
+| `training/` | Response, logit, and DPO training stages. |
 | `eval/` | Evaluation and output comparison utilities. |
 | `utils/` | Shared config, IO, pricing, and logging helpers. |

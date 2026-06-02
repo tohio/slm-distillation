@@ -9,9 +9,10 @@ PYTHONPATH := .
 CONFIG ?= configs/response_distill.yaml
 TEACHERS_CONFIG ?= configs/teachers.yaml
 DPO_CONFIG ?= configs/dpo.yaml
+PREFERENCE_CONFIG ?= configs/preference.yaml
 LIMIT ?=
 
-.PHONY: help install test test-unit generate generate-dry-run validate dataset train-dpo train-dpo-dry-run response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: help install test test-unit generate generate-dry-run validate dataset preference train-dpo train-dpo-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
 help:
 > @echo ""
@@ -68,6 +69,10 @@ validate:
 dataset:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_dataset.py \
 >   --config $(CONFIG)
+
+preference:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_preference_dataset.py \
+>   --config $(PREFERENCE_CONFIG)
 
 train-dpo:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \

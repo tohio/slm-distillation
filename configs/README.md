@@ -1,4 +1,3 @@
-
 # Configs
 
 Configuration files for teacher selection, distillation runs, validation rules, and evaluation.
@@ -10,6 +9,7 @@ Configuration files for teacher selection, distillation runs, validation rules, 
 | `teachers.yaml` | Teacher model registry with provider, model slug, mode, and pricing metadata. |
 | `response_distill.yaml` | OpenRouter response-distillation run config. |
 | `response_distill_groq.yaml` | Groq response-distillation run config. |
+| `preference.yaml` | Preference dataset build config for DPO pairs. |
 | `logit_distill.yaml` | Local teacher/student logit-distillation config. |
 | `dpo.yaml` | DPO stage config for the final distilled model. |
 | `validation.yaml` | Shared validation and filtering rules. |
@@ -24,15 +24,3 @@ Final exported model names use the source model and teacher family:
     slm-125m-qwen-distilled
 
 Distillation method and DPO status are recorded in model card metadata, not in the model name.
-
-## Output Fields
-
-| Field | Purpose |
-|---|---|
-| `output.model_name` | Final exported model name. |
-| `output.source_model_name` | Source SLM model family/name. |
-| `output.teacher_family` | Teacher family used in the final model name. |
-| `output.run_dir` | Run artifact directory. |
-| `output.checkpoint_dir` | Intermediate distillation checkpoint directory. |
-| `output.final_checkpoint_dir` | Final post-DPO checkpoint directory. |
-| `output.export_repo` | Hugging Face export repository. |

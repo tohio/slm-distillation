@@ -137,6 +137,33 @@ class DpoConfig:
     output: DpoOutputConfig
 
 
+@dataclass(frozen=True)
+class PreferenceSourceConfig:
+    validated_teacher_path: str
+    rejected_response_path: str | None
+
+
+@dataclass(frozen=True)
+class PreferenceDataConfig:
+    output_path: str
+    rejected_path: str
+
+
+@dataclass(frozen=True)
+class PreferenceBuildSettings:
+    default_rejected_response: str
+    require_non_empty_chosen: bool
+    require_non_empty_rejected: bool
+    reject_identical_pairs: bool
+
+
+@dataclass(frozen=True)
+class PreferenceConfig:
+    source: PreferenceSourceConfig
+    data: PreferenceDataConfig
+    preference: PreferenceBuildSettings
+
+
 def load_yaml(path: str | Path) -> dict[str, Any]:
     config_path = Path(path)
 
@@ -443,6 +470,42 @@ def load_dpo_config(path: str | Path) -> DpoConfig:
             run_dir=_require_str(output, "run_dir"),
             checkpoint_dir=_require_str(output, "checkpoint_dir"),
             final_checkpoint_dir=_require_str(output, "final_checkpoint_dir"),
+        ),
+    )
+
+def load_preference_config(path: str | Path) -> PreferenceConfig:
+    data = load_yaml(path)
+
+    source = _require_mapping(data, "source")
+    data_cfg = _require_mapping(data, "data")
+    preference = _require_mapping(data, "preference")
+
+    rejected_response_path = source.get("rejected_response_path")
+    if rejected_response_path is not None and not isinstance(rejected_response_path, str):
+        raise ValueError(
+            "config optional field 'source.rejected_response_path' must be a string or null"
+        )
+
+    return PreferenceConfig(
+        source=PreferenceSourceConfig(
+            validated_teacher_path=_require_str(source, "validated_teacher_path"),
+            rejected_response_path=rejected_response_path,
+        ),
+        data=PreferenceDataConfig(
+            output_path=_require_str(data_cfg, "output_path"),
+            rejected_path=_require_str(data_cfg, "rejected_path"),
+        ),
+        preference=PreferenceBuildSettings(
+            default_rejected_response=_require_str(
+                preference, "default_rejected_response"
+            ),
+            require_non_empty_chosen=_require_bool(
+                preference, "require_non_empty_chosen"
+            ),
+            require_non_empty_rejected=_require_bool(
+                preference, "require_non_empty_rejected"
+            ),
+            reject_identical_pairs=_require_bool(preference, "reject_identical_pairs"),
         ),
     )
 
