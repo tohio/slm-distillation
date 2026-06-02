@@ -15,7 +15,7 @@ EXPORT_CONFIG ?= configs/export.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
 LIMIT ?=
 
-.PHONY: help install test test-unit generate generate-dry-run validate dataset preference train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: help install test test-unit generate generate-dry-run validate dataset preference artifact-handoff verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
 help:
 > @echo ""
@@ -134,5 +134,5 @@ clean-generated:
 > rm -f data/validated/*.jsonl
 > rm -f data/rejected/*.jsonl
 > rm -f data/distill/*.jsonl
-	rm -f data/preference/*.jsonl
+> rm -f data/preference/*.jsonl
 > rm -rf runs/
