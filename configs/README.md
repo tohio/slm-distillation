@@ -7,7 +7,7 @@ Configuration files for teacher selection, distillation runs, validation rules, 
 | File | Purpose |
 |---|---|
 | `teachers.yaml` | Teacher model registry with provider, model slug, mode, and pricing metadata. |
-| `response_distill.yaml` | OpenRouter response-distillation run config. |
+| `response_distill_openrouter.yaml` | OpenRouter response-distillation run config. |
 | `response_distill_groq.yaml` | Groq response-distillation run config. |
 | `preference.yaml` | Preference dataset build config for DPO pairs. |
 | `logit_distill.yaml` | Local teacher/student logit-distillation config. |

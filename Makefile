@@ -6,7 +6,7 @@
 
 PYTHON := python3
 PYTHONPATH := .
-CONFIG ?= configs/response_distill.yaml
+CONFIG ?= configs/response_distill_openrouter.yaml
 TEACHERS_CONFIG ?= configs/teachers.yaml
 DPO_CONFIG ?= configs/dpo.yaml
 LOGIT_CONFIG ?= configs/logit_distill.yaml

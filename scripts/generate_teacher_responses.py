@@ -32,7 +32,7 @@ class DryRunProvider:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate raw teacher responses.")
-    parser.add_argument("--config", default="configs/response_distill.yaml")
+    parser.add_argument("--config", default="configs/response_distill_openrouter.yaml")
     parser.add_argument("--teachers", default="configs/teachers.yaml")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--target-tokens", type=int, default=None)

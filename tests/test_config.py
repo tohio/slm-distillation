@@ -52,7 +52,7 @@ teachers:
 def test_load_response_distill_config_reads_default_file() -> None:
     from distill.utils.config import load_response_distill_config
 
-    config = load_response_distill_config("configs/response_distill.yaml")
+    config = load_response_distill_config("configs/response_distill_openrouter.yaml")
 
     assert config.teacher_name == "deepseek_v4_flash"
     assert config.student.name == "slm-student"
@@ -82,7 +82,7 @@ def test_load_response_distill_config_reads_default_file() -> None:
 def test_load_response_distill_config_rejects_wrong_mode(tmp_path: Path) -> None:
     from distill.utils.config import load_response_distill_config
 
-    path = tmp_path / "response_distill.yaml"
+    path = tmp_path / "response_distill_openrouter.yaml"
     path.write_text(
         """
 teacher:
@@ -144,7 +144,7 @@ model_card:
 def test_load_response_distill_config_accepts_prompts_paths_only(tmp_path: Path) -> None:
     from distill.utils.config import load_response_distill_config
 
-    path = tmp_path / "response_distill.yaml"
+    path = tmp_path / "response_distill_openrouter.yaml"
     path.write_text(
         """
 teacher:
@@ -210,7 +210,7 @@ def test_load_response_distill_config_rejects_conflicting_prompt_fields(
 ) -> None:
     from distill.utils.config import load_response_distill_config
 
-    path = tmp_path / "response_distill.yaml"
+    path = tmp_path / "response_distill_openrouter.yaml"
     path.write_text(
         """
 teacher:

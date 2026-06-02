@@ -55,7 +55,7 @@ slm-distillation/
 ├── configs/
 │   ├── README.md
 │   ├── teachers.yaml
-│   ├── response_distill.yaml
+│   ├── response_distill_openrouter.yaml
 │   ├── logit_distill.yaml
 │   ├── validation.yaml
 │   └── eval.yaml
@@ -192,14 +192,14 @@ WANDB_API_KEY=
 
 ```bash
 python scripts/prepare_prompts.py \
-  --config configs/response_distill.yaml
+  --config configs/response_distill_openrouter.yaml
 ```
 
 ### Step 2: Generate teacher responses
 
 ```bash
 python scripts/generate_teacher_responses.py \
-  --config configs/response_distill.yaml
+  --config configs/response_distill_openrouter.yaml
 ```
 
 ### Step 3: Validate teacher responses
@@ -224,7 +224,7 @@ python scripts/build_dataset.py \
 
 ```bash
 python scripts/train_response_distill.py \
-  --config configs/response_distill.yaml
+  --config configs/response_distill_openrouter.yaml
 ```
 
 ### Step 6: Evaluate the distilled checkpoint
