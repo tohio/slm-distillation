@@ -1,6 +1,6 @@
 # Docs
 
-Design notes and detailed documentation.
+Design documentation for SLM distillation workflows.
 
 ## Files
 
@@ -9,6 +9,4 @@ Design notes and detailed documentation.
 | `teacher_policy.md` | Teacher model license and usage policy. |
 | `response_distillation.md` | Response-distillation design. |
 | `logit_distillation.md` | Logit-distillation design. |
-| `cost_tracking.md` | Cost tracking and token accounting notes. |
-
-The top-level README should stay concise. Put deeper rationale here.
+| `cost_tracking.md` | Token and cost accounting notes. |
