@@ -6,6 +6,7 @@ Core Python package for SLM distillation workflows.
 
 | Directory | Purpose |
 |---|---|
+| `artifacts/` | Required generated JSONL artifact handoff utilities. |
 | `providers/` | Hosted and local teacher provider adapters. |
 | `generation/` | Prompt loading and teacher response generation. |
 | `validation/` | Schema checks and quality filters. |

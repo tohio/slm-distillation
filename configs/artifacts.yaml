@@ -1,0 +1,15 @@
+artifact:
+  run_name: slm-125m-deepseek-distilled
+  repo_id: tohio/slm-distillation-artifacts
+  repo_type: dataset
+  local_dir: artifacts/slm-125m-deepseek-distilled
+  bundle_path: artifacts/slm-125m-deepseek-distilled.tar.gz
+  required:
+    - data/distill/response_distill.jsonl
+    - data/preference/dpo_pairs.jsonl
+  include:
+    - data/raw_teacher/*.jsonl
+    - data/validated/*.jsonl
+    - data/rejected/*.jsonl
+    - data/distill/*.jsonl
+    - data/preference/*.jsonl

@@ -10,6 +10,11 @@ Command-line entrypoints for the distillation pipeline.
 | `validate_teacher_responses.py` | Validate raw teacher outputs. |
 | `build_dataset.py` | Build response-distillation training JSONL. |
 | `build_preference_dataset.py` | Build DPO preference-pair JSONL. |
+| `pack_artifacts.py` | Pack generated JSONL artifacts into a local bundle. |
+| `verify_artifacts.py` | Verify artifact manifest checksums. |
+| `unpack_artifacts.py` | Unpack a local artifact bundle. |
+| `push_artifacts.py` | Push generated JSONL artifacts to a Hugging Face dataset repo. |
+| `pull_artifacts.py` | Pull generated JSONL artifacts from a Hugging Face dataset repo. |
 | `train_response_distill.py` | Train a student with response distillation. |
 | `train_logit_distill.py` | Run or inspect the local logit-distillation stage. |
 | `train_dpo.py` | Run or inspect the DPO training stage. |
