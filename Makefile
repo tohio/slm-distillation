@@ -134,4 +134,5 @@ clean-generated:
 > rm -f data/validated/*.jsonl
 > rm -f data/rejected/*.jsonl
 > rm -f data/distill/*.jsonl
+	rm -f data/preference/*.jsonl
 > rm -rf runs/
