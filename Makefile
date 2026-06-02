@@ -1,4 +1,4 @@
-.PHONY: install test test-unit generate generate-dry-run validate dataset response-pipeline clean-generated
+.PHONY: install test test-unit generate generate-dry-run validate dataset response-pipeline response-pipeline-dry-run clean-generated
 
 CONFIG ?= configs/response_distill.yaml
 TEACHERS_CONFIG ?= configs/teachers.yaml
@@ -35,6 +35,8 @@ dataset:
 		--config $(CONFIG)
 
 response-pipeline: generate validate dataset
+
+response-pipeline-dry-run: generate-dry-run validate dataset
 
 clean-generated:
 	rm -f data/raw_teacher/*.jsonl
