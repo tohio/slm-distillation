@@ -14,14 +14,11 @@ def test_openrouter_provider_scope() -> None:
 
 
 def test_groq_provider_scope() -> None:
-    provider = GroqProvider()
+    provider = GroqProvider(api_key="test-key")
 
     assert provider.provider_name == "groq"
     assert provider.supports_response_distillation is True
     assert provider.supports_logit_distillation is False
-
-    with pytest.raises(NotImplementedError, match="GroqProvider"):
-        provider.generate(None)  # type: ignore[arg-type]
 
 
 def test_local_provider_scope() -> None:
