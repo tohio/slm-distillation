@@ -93,6 +93,50 @@ class ResponseDistillConfig:
     model_card: ModelCardConfig
 
 
+@dataclass(frozen=True)
+class DpoSourceConfig:
+    model_name: str
+    checkpoint_path: str
+    tokenizer_path: str
+
+
+@dataclass(frozen=True)
+class DpoDataConfig:
+    preference_dataset_path: str
+    rejected_path: str
+
+
+@dataclass(frozen=True)
+class DpoTrainingConfig:
+    method: str
+    beta: float
+    max_length: int
+    max_prompt_length: int
+    per_device_train_batch_size: int
+    gradient_accumulation_steps: int
+    learning_rate: float
+    num_train_epochs: int
+    warmup_ratio: float
+    bf16: bool
+    seed: int
+
+
+@dataclass(frozen=True)
+class DpoOutputConfig:
+    model_name: str
+    run_dir: str
+    checkpoint_dir: str
+    final_checkpoint_dir: str
+
+
+@dataclass(frozen=True)
+class DpoConfig:
+    source: DpoSourceConfig
+    data: DpoDataConfig
+    training: DpoTrainingConfig
+    output: DpoOutputConfig
+
+
 def load_yaml(path: str | Path) -> dict[str, Any]:
     config_path = Path(path)
 
@@ -354,3 +398,51 @@ def teacher_to_pricing(teacher: TeacherConfig):
         input_price_per_1m=teacher.input_price_per_1m,
         output_price_per_1m=teacher.output_price_per_1m,
     )
+
+def load_dpo_config(path: str | Path) -> DpoConfig:
+    data = load_yaml(path)
+
+    source = _require_mapping(data, "source")
+    data_cfg = _require_mapping(data, "data")
+    training = _require_mapping(data, "training")
+    output = _require_mapping(data, "output")
+
+    method = _require_str(training, "method")
+    if method != "dpo":
+        raise ValueError("DPO config requires training.method='dpo'")
+
+    return DpoConfig(
+        source=DpoSourceConfig(
+            model_name=_require_str(source, "model_name"),
+            checkpoint_path=_require_str(source, "checkpoint_path"),
+            tokenizer_path=_require_str(source, "tokenizer_path"),
+        ),
+        data=DpoDataConfig(
+            preference_dataset_path=_require_str(data_cfg, "preference_dataset_path"),
+            rejected_path=_require_str(data_cfg, "rejected_path"),
+        ),
+        training=DpoTrainingConfig(
+            method=method,
+            beta=_require_float_or_int(training, "beta"),
+            max_length=_require_int(training, "max_length"),
+            max_prompt_length=_require_int(training, "max_prompt_length"),
+            per_device_train_batch_size=_require_int(
+                training, "per_device_train_batch_size"
+            ),
+            gradient_accumulation_steps=_require_int(
+                training, "gradient_accumulation_steps"
+            ),
+            learning_rate=_require_float_or_int(training, "learning_rate"),
+            num_train_epochs=_require_int(training, "num_train_epochs"),
+            warmup_ratio=_require_float_or_int(training, "warmup_ratio"),
+            bf16=_require_bool(training, "bf16"),
+            seed=_require_int(training, "seed"),
+        ),
+        output=DpoOutputConfig(
+            model_name=_require_str(output, "model_name"),
+            run_dir=_require_str(output, "run_dir"),
+            checkpoint_dir=_require_str(output, "checkpoint_dir"),
+            final_checkpoint_dir=_require_str(output, "final_checkpoint_dir"),
+        ),
+    )
+

@@ -1,0 +1,28 @@
+
+source:
+  model_name: slm-125m-deepseek-distilled
+  checkpoint_path: runs/slm-125m-deepseek-distilled/response_distill/checkpoints/final
+  tokenizer_path: ../slm/results/runs/125m/tokenizer
+
+data:
+  preference_dataset_path: data/preference/dpo_pairs.jsonl
+  rejected_path: data/rejected/dpo_rejected.jsonl
+
+training:
+  method: dpo
+  beta: 0.1
+  max_length: 1024
+  max_prompt_length: 512
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 0.000005
+  num_train_epochs: 1
+  warmup_ratio: 0.03
+  bf16: true
+  seed: 42
+
+output:
+  model_name: slm-125m-deepseek-distilled
+  run_dir: runs/slm-125m-deepseek-distilled/dpo
+  checkpoint_dir: runs/slm-125m-deepseek-distilled/dpo/checkpoints
+  final_checkpoint_dir: runs/slm-125m-deepseek-distilled/dpo/checkpoints/final

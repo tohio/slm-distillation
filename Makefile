@@ -8,9 +8,10 @@ PYTHON := python3
 PYTHONPATH := .
 CONFIG ?= configs/response_distill.yaml
 TEACHERS_CONFIG ?= configs/teachers.yaml
+DPO_CONFIG ?= configs/dpo.yaml
 LIMIT ?=
 
-.PHONY: help install test test-unit generate generate-dry-run validate dataset response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: help install test test-unit generate generate-dry-run validate dataset train-dpo train-dpo-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
 help:
 > @echo ""
@@ -67,6 +68,15 @@ validate:
 dataset:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_dataset.py \
 >   --config $(CONFIG)
+
+train-dpo:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
+>   --config $(DPO_CONFIG)
+
+train-dpo-dry-run:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
+>   --config $(DPO_CONFIG) \
+>   --dry-run
 
 response-pipeline: generate validate dataset
 
