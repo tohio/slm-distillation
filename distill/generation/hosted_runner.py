@@ -36,7 +36,11 @@ def build_batch_prompt(prompts: list[PromptRecord]) -> str:
         "You are generating supervised distillation outputs.\n"
         "Return ONLY a valid JSON array. Do not include markdown, code fences, or text outside JSON.\n"
         "The array MUST contain exactly one object for each input item, in the same order.\n"
-        "Each output object MUST use this schema: {\"id\": string, \"output\": string}\n\n"
+        "Each output object MUST use this schema: {\"id\": string, \"output\": string}\n"
+        "Keep each output concise, complete, and directly useful.\n"
+        "Do not add long introductions, repeated disclaimers, or unrelated explanation.\n"
+        "For code tasks, return the requested code and only the minimal necessary notes.\n"
+        "For planning/debugging tasks, prefer compact bullets or numbered steps.\n\n"
         "Input items:\n"
         f"{json.dumps(items, ensure_ascii=False, indent=2)}"
     )
@@ -333,13 +337,15 @@ def run_hosted_generation(
         "Hosted generation plan: "
         f"prompts={len(prompts)} skipped={skipped} remaining={total} "
         f"batch_size={effective_batch_size} min_batch_size={effective_min_batch_size} "
-        f"parallel_requests={effective_parallel}"
+        f"parallel_requests={effective_parallel}",
+        flush=True,
     )
 
     batches = _chunked(selected, effective_batch_size)
     written = 0
     errors = 0
     completed = 0
+    next_progress = effective_progress_interval
     start = time.time()
 
     with output.open("a", encoding="utf-8") as handle:
@@ -362,8 +368,9 @@ def run_hosted_generation(
                 for batch in batches
             ]
 
-            for future in as_completed(futures):
+            for batch_index, future in enumerate(as_completed(futures), start=1):
                 items = future.result()
+                batch_size_completed = len(items)
                 for item in items:
                     written += 1
                     if item.error:
@@ -387,13 +394,21 @@ def run_hosted_generation(
 
                 handle.flush()
 
-                if completed % effective_progress_interval == 0 or completed >= total:
+                if completed >= next_progress or completed >= total:
                     elapsed = max(0.001, time.time() - start)
                     print(
                         "Hosted generation progress: "
-                        f"completed={completed}/{total} written={written} errors={errors} "
-                        f"skipped={skipped} elapsed_seconds={elapsed:.1f} "
-                        f"records_per_second={completed / elapsed:.2f}"
+                        f"batches={batch_index}/{len(batches)} "
+                        f"last_batch_records={batch_size_completed} "
+                        f"completed={completed}/{total} "
+                        f"written={written} "
+                        f"errors={errors} "
+                        f"skipped={skipped} "
+                        f"elapsed_seconds={elapsed:.1f} "
+                        f"records_per_second={completed / elapsed:.2f}",
+                        flush=True,
                     )
+                    while next_progress <= completed:
+                        next_progress += effective_progress_interval
 
     return HostedGenerationResult(str(output), written, skipped, errors)
