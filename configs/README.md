@@ -16,6 +16,19 @@ Configuration files for teacher selection, distillation runs, validation rules, 
 | `validation.yaml` | Shared validation and filtering rules. |
 | `eval.yaml` | Evaluation config for base and distilled checkpoints. |
 
-## Logit Distillation
+## Hosted Generation Controls
 
-`logit_distill.yaml` requires a local teacher provider and tokenizer compatibility between teacher and student.
+Response-distillation configs may define provider-specific hosted generation controls under `providers.<provider>.generation`.
+
+| Field | Purpose |
+|---|---|
+| `concurrency` | Maximum worker count for hosted generation. |
+| `max_requeues` | Number of runner-level requeues after provider retry exhaustion. |
+| `exhausted_retryable_requeue_delay_seconds` | Delay before requeueing a retry-exhausted prompt. |
+| `max_retryable_request_attempts` | Per-call retry attempts for retryable provider errors. |
+| `retry_backoff_initial_seconds` | Initial retry backoff. |
+| `retry_backoff_max_seconds` | Maximum retry backoff. |
+| `retry_jitter_ratio` | Random jitter ratio added to retry backoff. |
+| `adaptive_concurrency_enabled` | Enables adaptive in-flight provider admission control. |
+
+Hosted controls apply to OpenRouter and Groq. Local provider execution uses separate local training controls.

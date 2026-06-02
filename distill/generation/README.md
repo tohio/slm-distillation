@@ -6,15 +6,14 @@ Prompt loading and teacher response generation.
 
 | File | Purpose |
 |---|---|
-| `prompts.py` | Loads prompt seed JSONL files. |
-| `records.py` | Defines raw teacher response records and JSONL IO. |
-| `generate_responses.py` | Converts prompts into raw teacher response records. |
-| `batch_runner.py` | Reserved for batching/concurrency support. |
+| `prompts.py` | Prompt seed schemas and merged prompt loading. |
+| `records.py` | Raw teacher response record schemas and JSONL IO. |
+| `generate_responses.py` | Teacher response generation helpers. |
+| `hosted_controls.py` | Retry, backoff, jitter, and adaptive hosted-provider controls. |
+| `hosted_runner.py` | Concurrent hosted generation runner for OpenRouter and Groq. |
 
-## Flow
+## Hosted Generation
 
-```text
-prompt JSONL
-  -> provider.generate()
-  -> raw teacher response JSONL
-```
+Hosted generation keeps one prompt ID mapped to one raw teacher response record.
+
+Retry-exhausted provider failures are requeued up to the configured limit. After requeue exhaustion, generation writes an error record when `continue_on_error` is enabled.
