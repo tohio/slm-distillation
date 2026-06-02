@@ -1,2 +1,5 @@
 {"id":"instruction-000001","category":"instruction","prompt":"Explain what a Python virtual environment is in two sentences.","metadata":{"source":"seed"}}
 {"id":"instruction-000002","category":"instruction","prompt":"Return only the capital city of France.","metadata":{"source":"seed"}}
+{"id":"instruction-000003","category":"instruction","prompt":"Explain the difference between a list and a tuple in Python in two sentences.","metadata":{"source":"seed"}}
+{"id":"instruction-000004","category":"instruction","prompt":"Give three concise reasons to use version control for software projects.","metadata":{"source":"seed"}}
+{"id":"instruction-000005","category":"instruction","prompt":"Explain what an API is using one simple example.","metadata":{"source":"seed"}}
