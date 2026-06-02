@@ -374,7 +374,7 @@ def _boto3_client() -> Any:
 
 
 def _list_s3_keys(client: Any, location: S3Location) -> set[str]:
-    keys: set[str] = {}
+    keys: set[str] = set()
     paginator = client.get_paginator("list_objects_v2")
 
     for page in paginator.paginate(Bucket=location.bucket, Prefix=location.prefix):
@@ -411,7 +411,7 @@ def push_artifacts(
     local_dir = root_path / config.local_dir
     client = _boto3_client()
 
-    uploaded_keys: set[str] = {}
+    uploaded_keys: set[str] = set()
     for source in sorted(local_dir.rglob("*")):
         if not source.is_file():
             continue
