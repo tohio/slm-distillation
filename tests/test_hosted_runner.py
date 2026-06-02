@@ -54,7 +54,7 @@ def test_run_hosted_generation_writes_records(tmp_path) -> None:
 
     assert result.written == 2
     assert result.errors == 0
-    assert output_path.read_text().count("\\n") == 2
+    assert output_path.read_text().count("\n") == 2
 
 
 def test_run_hosted_generation_retries_retryable_errors(tmp_path) -> None:

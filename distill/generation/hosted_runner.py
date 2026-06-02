@@ -73,7 +73,7 @@ def write_jsonl(path: str | Path, records: list[dict[str, Any]]) -> int:
     with output_path.open("w", encoding="utf-8") as handle:
         for record in records:
             handle.write(json.dumps(record, sort_keys=True))
-            handle.write("\\n")
+            handle.write("\n")
 
     return len(records)
 
