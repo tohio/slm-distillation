@@ -319,7 +319,7 @@ def unpack_artifacts(
     target.mkdir(parents=True, exist_ok=True)
 
     with tarfile.open(bundle, "r:gz") as archive:
-        archive.extractall(target)
+        archive.extractall(target, filter="data")
 
     return target
 
