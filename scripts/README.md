@@ -20,3 +20,5 @@ Command-line entrypoints for the distillation pipeline.
 | `train_dpo.py` | Run or inspect the DPO training stage. |
 | `export_model.py` | Generate model card and export final model variant. |
 | `run_eval.py` | Evaluate base and distilled checkpoints. |
+
+`report_token_counts.py` reports estimated token counts for generated JSONL datasets.

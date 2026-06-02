@@ -17,3 +17,7 @@ Prompt loading and teacher response generation.
 Hosted generation keeps one prompt ID mapped to one raw teacher response record.
 
 Retry-exhausted provider failures are requeued up to the configured limit. After requeue exhaustion, generation writes an error record when `continue_on_error` is enabled.
+
+## Token Targets
+
+Use `TARGET_TOKENS` with `make generate` or `make response-pipeline` to select prompts by estimated generated-token budget.

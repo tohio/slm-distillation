@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import argparse
@@ -8,8 +7,9 @@ from typing import Any
 import yaml
 
 from distill.generation.hosted_controls import hosted_controls_from_mapping
-from distill.generation.hosted_runner import run_hosted_generation, write_jsonl
-from distill.generation.prompts import PromptRecord, load_merged_prompt_records
+from distill.generation.hosted_runner import run_hosted_generation
+from distill.generation.prompts import load_merged_prompt_records
+from distill.generation.token_budget import select_prompts_for_token_target
 from distill.providers.base import GenerationResponse
 from distill.providers.groq import GroqProvider
 from distill.providers.openrouter import OpenRouterProvider
@@ -32,27 +32,13 @@ class DryRunProvider:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate raw teacher responses.")
-    parser.add_argument(
-        "--config",
-        default="configs/response_distill.yaml",
-        help="Path to response distillation config YAML.",
-    )
-    parser.add_argument(
-        "--teachers",
-        default="configs/teachers.yaml",
-        help="Path to teacher registry YAML.",
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
-        help="Optional prompt limit for smoke tests.",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Write deterministic dry-run records without calling a hosted API.",
-    )
+    parser.add_argument("--config", default="configs/response_distill.yaml")
+    parser.add_argument("--teachers", default="configs/teachers.yaml")
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--target-tokens", type=int, default=None)
+    parser.add_argument("--estimated-tokens-per-record", type=int, default=256)
+    parser.add_argument("--allow-repeat-prompts", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
 
@@ -80,13 +66,10 @@ def _teacher_field(teacher: Any, field: str) -> Any:
 def _provider_for_name(provider_name: str, dry_run: bool) -> Any:
     if dry_run:
         return DryRunProvider()
-
     if provider_name == "openrouter":
         return OpenRouterProvider()
-
     if provider_name == "groq":
         return GroqProvider()
-
     raise SystemExit(f"Unsupported provider for generation: {provider_name}")
 
 
@@ -100,6 +83,9 @@ def _provider_generation_config(config_path: str, provider_name: str) -> dict[st
 def main() -> None:
     args = parse_args()
 
+    if args.limit is not None and args.target_tokens is not None:
+        raise SystemExit("Use either --limit or --target-tokens, not both.")
+
     run_config = load_response_distill_config(args.config)
     teachers_config = load_teachers_config(args.teachers)
     teacher = _teacher_map(teachers_config)[run_config.teacher_name]
@@ -108,8 +94,26 @@ def main() -> None:
     teacher_model = _teacher_field(teacher, "model")
 
     prompts = load_merged_prompt_records(run_config.data.prompts_paths)
+
     if args.limit is not None:
         prompts = prompts[: args.limit]
+
+    prompts, token_plan = select_prompts_for_token_target(
+        prompts,
+        target_tokens=args.target_tokens,
+        estimated_tokens_per_record=args.estimated_tokens_per_record,
+        allow_repeat=args.allow_repeat_prompts,
+    )
+
+    if token_plan is not None:
+        print(
+            "Token target plan: "
+            f"target_tokens={token_plan.target_tokens} "
+            f"estimated_tokens_per_record={token_plan.estimated_tokens_per_record} "
+            f"selected_records={token_plan.selected_records} "
+            f"estimated_total_tokens={token_plan.estimated_total_tokens} "
+            f"repeated={token_plan.repeated}"
+        )
 
     provider = _provider_for_name(teacher_provider, args.dry_run)
 

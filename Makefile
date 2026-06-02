@@ -14,8 +14,11 @@ PREFERENCE_CONFIG ?= configs/preference.yaml
 EXPORT_CONFIG ?= configs/export.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
 LIMIT ?=
+TARGET_TOKENS ?=
+ESTIMATED_TOKENS_PER_RECORD ?= 256
+ALLOW_REPEAT_PROMPTS ?=
 
-.PHONY: help install test test-unit generate generate-dry-run validate dataset preference artifact-handoff verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: help install test test-unit generate generate-dry-run validate dataset token-report preference artifact-handoff verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
 help:
 > @echo ""
@@ -56,13 +59,19 @@ generate:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/generate_teacher_responses.py \
 >   --config $(CONFIG) \
 >   --teachers $(TEACHERS_CONFIG) \
->   $(if $(LIMIT),--limit $(LIMIT),)
+>   $(if $(LIMIT),--limit $(LIMIT),) \
+>   $(if $(TARGET_TOKENS),--target-tokens $(TARGET_TOKENS),) \
+>   $(if $(ESTIMATED_TOKENS_PER_RECORD),--estimated-tokens-per-record $(ESTIMATED_TOKENS_PER_RECORD),) \
+>   $(if $(ALLOW_REPEAT_PROMPTS),--allow-repeat-prompts,)
 
 generate-dry-run:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/generate_teacher_responses.py \
 >   --config $(CONFIG) \
 >   --teachers $(TEACHERS_CONFIG) \
 >   $(if $(LIMIT),--limit $(LIMIT),) \
+>   $(if $(TARGET_TOKENS),--target-tokens $(TARGET_TOKENS),) \
+>   $(if $(ESTIMATED_TOKENS_PER_RECORD),--estimated-tokens-per-record $(ESTIMATED_TOKENS_PER_RECORD),) \
+>   $(if $(ALLOW_REPEAT_PROMPTS),--allow-repeat-prompts,) \
 >   --dry-run
 
 validate:
@@ -72,6 +81,9 @@ validate:
 dataset:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_dataset.py \
 >   --config $(CONFIG)
+
+token-report:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/report_token_counts.py
 
 preference:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_preference_dataset.py \
