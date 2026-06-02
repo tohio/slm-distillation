@@ -28,6 +28,19 @@ REFUSAL_MARKERS = (
 )
 
 
+
+def _allows_safe_refusal_for_category(record: object) -> bool:
+    category = getattr(record, "category", None)
+    if category == "factual_restraint":
+        return True
+
+    metadata = getattr(record, "metadata", None)
+    if isinstance(metadata, dict) and metadata.get("family") == "factual_restraint":
+        return True
+
+    return False
+
+
 def validate_teacher_response(
     record: TeacherResponseRecord,
     require_non_empty_output: bool = True,
@@ -45,7 +58,10 @@ def validate_teacher_response(
     if reject_refusals_when_not_expected:
         lowered = response.lower()
         if any(marker in lowered for marker in REFUSAL_MARKERS):
-            if not record.metadata.get("allow_refusal", False):
+            if (
+                not record.metadata.get("allow_refusal", False)
+                and not _allows_safe_refusal_for_category(record)
+            ):
                 return ValidationResult(accepted=False, reason="unexpected_refusal")
 
     if reject_code_fences_for_function_body_tasks:
