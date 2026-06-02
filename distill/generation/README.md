@@ -6,6 +6,7 @@ Prompt loading and teacher response generation.
 
 | File | Purpose |
 |---|---|
+| `prompt_builder.py` | Deterministic prompt builders for scalable distillation runs. |
 | `prompts.py` | Prompt seed schemas and merged prompt loading. |
 | `records.py` | Raw teacher response record schemas and JSONL IO. |
 | `generate_responses.py` | Teacher response generation helpers. |

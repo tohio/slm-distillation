@@ -6,6 +6,7 @@ Configuration files for teacher selection, distillation runs, validation rules, 
 
 | File | Purpose |
 |---|---|
+| `prompts.yaml` | Prompt build config for scalable teacher-generation inputs. |
 | `teachers.yaml` | Teacher model registry with provider, model slug, mode, and pricing metadata. |
 | `response_distill_openrouter.yaml` | OpenRouter response-distillation run config. |
 | `response_distill_groq.yaml` | Groq response-distillation run config. |

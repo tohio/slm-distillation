@@ -1,0 +1,6 @@
+prompts:
+  output_path: data/prompts/built_prompts.jsonl
+  seed_paths:
+    - data/prompts/instruction_seed.jsonl
+  default_target_records: 500
+  include_seed_prompts: true

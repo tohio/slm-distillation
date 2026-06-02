@@ -7,6 +7,7 @@
 PYTHON := python3
 PYTHONPATH := .
 CONFIG ?= configs/response_distill_openrouter.yaml
+PROMPT_CONFIG ?= configs/prompts.yaml
 TEACHERS_CONFIG ?= configs/teachers.yaml
 DPO_CONFIG ?= configs/dpo.yaml
 LOGIT_CONFIG ?= configs/logit_distill.yaml
@@ -15,10 +16,11 @@ EXPORT_CONFIG ?= configs/export.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
 LIMIT ?=
 TARGET_TOKENS ?=
+TARGET_RECORDS ?=
 ESTIMATED_TOKENS_PER_RECORD ?= 256
 ALLOW_REPEAT_PROMPTS ?=
 
-.PHONY: help install test test-unit generate generate-dry-run validate dataset token-report preference artifact-handoff verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: build-prompts help install test test-unit generate generate-dry-run validate dataset token-report preference artifact-handoff verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
 
 help:
 > @echo ""
@@ -54,6 +56,11 @@ test:
 
 test-unit:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m pytest tests
+
+build-prompts:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_prompts.py \
+>   --config $(PROMPT_CONFIG) \
+>   $(if $(TARGET_RECORDS),--target-records $(TARGET_RECORDS),)
 
 generate:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/generate_teacher_responses.py \
@@ -137,9 +144,9 @@ export-dry-run:
 >   --config $(EXPORT_CONFIG) \
 >   --dry-run
 
-response-pipeline: generate validate dataset
+response-pipeline: build-prompts generate validate dataset
 
-response-pipeline-dry-run: generate-dry-run validate dataset
+response-pipeline-dry-run: build-prompts generate-dry-run validate dataset
 
 clean-generated:
 > rm -f data/raw_teacher/*.jsonl

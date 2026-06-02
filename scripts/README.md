@@ -6,6 +6,7 @@ Command-line entrypoints for the distillation pipeline.
 
 | Script | Purpose |
 |---|---|
+| `build_prompts.py` | Build scalable prompt JSONL for teacher generation. |
 | `generate_teacher_responses.py` | Generate raw teacher outputs from prompts. |
 | `validate_teacher_responses.py` | Validate raw teacher outputs. |
 | `build_dataset.py` | Build response-distillation training JSONL. |

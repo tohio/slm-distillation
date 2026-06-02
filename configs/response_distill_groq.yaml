@@ -19,7 +19,7 @@ distillation:
 data:
   prompts_path: data/prompts/instruction_seed.jsonl
   prompts_paths:
-    - data/prompts/instruction_seed.jsonl
+  - data/prompts/built_prompts.jsonl
   raw_teacher_path: data/raw_teacher/groq_llama_3_3_70b_versatile.jsonl
   validated_path: data/validated/groq_llama_3_3_70b_versatile.jsonl
   rejected_path: data/rejected/groq_llama_3_3_70b_versatile.jsonl
