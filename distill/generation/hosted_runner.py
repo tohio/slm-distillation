@@ -102,6 +102,7 @@ def _record(
         "prompt": prompt.prompt,
         "output": output,
         "response": output,
+        "teacher": teacher_model,
         "teacher_model": teacher_model,
         "teacher_provider": provider_name,
         "provider": provider_name,
@@ -162,24 +163,47 @@ def _generate_batch_once(
     max_output_tokens: int,
     temperature: float,
     top_p: float,
+    max_attempts: int,
+    retry_delay_seconds: float,
 ) -> list[BatchGenerationItem]:
     if getattr(provider, "provider_name", "") == "dry_run":
         return _dry_run_batch(prompts, teacher_model=teacher_model, provider_name=provider_name)
 
-    response = provider.generate(
-        GenerationRequest(
-            prompt=build_batch_prompt(prompts),
-            model=teacher_model,
-            max_output_tokens=max_output_tokens * len(prompts),
-            temperature=temperature,
-            top_p=top_p,
-        )
-    )
-    outputs = parse_batch_response(prompts=prompts, response_text=response.text)
-    return [
-        BatchGenerationItem(prompt=prompt, output=outputs[prompt.id], response=response)
-        for prompt in prompts
-    ]
+    last_error: Exception | None = None
+
+    for attempt in range(1, max(1, max_attempts) + 1):
+        try:
+            response = provider.generate(
+                GenerationRequest(
+                    prompt=build_batch_prompt(prompts),
+                    model=teacher_model,
+                    max_output_tokens=max_output_tokens * len(prompts),
+                    temperature=temperature,
+                    top_p=top_p,
+                )
+            )
+
+            try:
+                outputs = parse_batch_response(prompts=prompts, response_text=response.text)
+            except Exception:
+                if len(prompts) != 1:
+                    raise
+                plain_text = response.text.strip()
+                if not plain_text:
+                    raise
+                outputs = {prompts[0].id: plain_text}
+
+            return [
+                BatchGenerationItem(prompt=prompt, output=outputs[prompt.id], response=response)
+                for prompt in prompts
+            ]
+        except Exception as exc:
+            last_error = exc
+            if attempt < max(1, max_attempts) and retry_delay_seconds > 0:
+                time.sleep(retry_delay_seconds)
+
+    assert last_error is not None
+    raise last_error
 
 
 def _generate_batch_with_split(
@@ -193,6 +217,8 @@ def _generate_batch_with_split(
     top_p: float,
     min_batch_size: int,
     continue_on_error: bool,
+    max_attempts: int,
+    retry_delay_seconds: float,
 ) -> list[BatchGenerationItem]:
     try:
         return _generate_batch_once(
@@ -203,6 +229,8 @@ def _generate_batch_with_split(
             max_output_tokens=max_output_tokens,
             temperature=temperature,
             top_p=top_p,
+            max_attempts=max_attempts,
+            retry_delay_seconds=retry_delay_seconds,
         )
     except Exception as exc:
         if len(prompts) > min_batch_size:
@@ -218,6 +246,8 @@ def _generate_batch_with_split(
                     top_p=top_p,
                     min_batch_size=min_batch_size,
                     continue_on_error=continue_on_error,
+                    max_attempts=max_attempts,
+                    retry_delay_seconds=retry_delay_seconds,
                 ),
                 *_generate_batch_with_split(
                     provider=provider,
@@ -229,6 +259,8 @@ def _generate_batch_with_split(
                     top_p=top_p,
                     min_batch_size=min_batch_size,
                     continue_on_error=continue_on_error,
+                    max_attempts=max_attempts,
+                    retry_delay_seconds=retry_delay_seconds,
                 ),
             ]
         if not continue_on_error:
@@ -275,6 +307,10 @@ def run_hosted_generation(
     effective_progress_interval = int(
         progress_interval or _controls_value(controls, "progress_interval", 25) or 25
     )
+    max_attempts = int(_controls_value(controls, "max_retryable_request_attempts", 1) or 1)
+    retry_delay_seconds = float(
+        _controls_value(controls, "retry_backoff_initial_seconds", 0.0) or 0.0
+    )
 
     if effective_batch_size <= 0:
         raise ValueError("batch_size must be greater than zero")
@@ -320,6 +356,8 @@ def run_hosted_generation(
                     top_p=top_p,
                     min_batch_size=effective_min_batch_size,
                     continue_on_error=continue_on_error,
+                    max_attempts=max_attempts,
+                    retry_delay_seconds=retry_delay_seconds,
                 )
                 for batch in batches
             ]
@@ -327,10 +365,9 @@ def run_hosted_generation(
             for future in as_completed(futures):
                 items = future.result()
                 for item in items:
+                    written += 1
                     if item.error:
                         errors += 1
-                    else:
-                        written += 1
                     handle.write(
                         json.dumps(
                             _record(
