@@ -57,7 +57,7 @@ providers:
       adaptive_cooldown_multiplier: 2.0
 
       request_timeout_seconds: 300
-      json_mode: true
+      json_mode: false
       adaptive_slow_start_enabled: true
       adaptive_slow_start_multiplier: 2.0
       adaptive_increase_successes_per_step: 64
