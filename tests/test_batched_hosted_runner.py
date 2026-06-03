@@ -44,7 +44,7 @@ def test_build_batch_prompt_contains_all_ids() -> None:
     assert "p0" in text
     assert "p1" in text
     assert "p2" in text
-    assert "Return ONLY a valid JSON array" in text
+    assert "Return only a JSON object with key `items`" in text
 
 
 def test_parse_batch_response_maps_outputs() -> None:
