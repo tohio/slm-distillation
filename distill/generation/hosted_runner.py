@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from distill.generation.adaptive import is_retryable_provider_error, sleep
 from distill.generation.prompts import PromptRecord
 from distill.providers.base import GenerationRequest, GenerationResponse
 
@@ -29,15 +30,12 @@ class BatchGenerationItem:
 
 
 class HostedBatchStore:
-    """Durable per-batch checkpoint store for hosted teacher generation."""
-
     def __init__(self, output_path: Path, run_key: str):
         self.output_path = output_path
-        self.run_key = run_key
 
         # Normal repo outputs use runs/ so make clean-generated clears state.
-        # Absolute pytest tmp outputs keep manifests next to the output file to
-        # avoid cross-test leakage from shared filenames like raw.jsonl.
+        # Pytest tmp outputs keep manifests beside the tmp output to avoid
+        # cross-test contamination from repeated raw.jsonl filenames.
         if output_path.is_absolute() and "pytest-" in str(output_path):
             root = output_path.parent / ".hosted_generation"
         else:
@@ -142,8 +140,7 @@ def build_batch_prompt(prompts: list[PromptRecord]) -> str:
         "Generate one supervised distillation output for each input item below. "
         "Preserve each id exactly and return items in the same order. "
         "Return only a JSON object with key `items`. "
-        "The object must match this shape: "
-        '{"items":[{"id":"...","output":"..."}]}. '
+        "Each item must contain exactly the original id and an output string. "
         "Each output must be concise, complete, directly useful, and free of unrelated filler.\n\n"
         "INPUT ITEMS:\n"
         + json.dumps(items, ensure_ascii=False, indent=2)
@@ -177,13 +174,7 @@ def _extract_json_value(text: str) -> Any:
 
 def parse_batch_response(*, prompts: list[PromptRecord], response_text: str) -> dict[str, str]:
     parsed = _extract_json_value(response_text)
-    if isinstance(parsed, dict):
-        items = parsed.get("items")
-    elif isinstance(parsed, list):
-        items = parsed
-    else:
-        items = None
-
+    items = parsed.get("items") if isinstance(parsed, dict) else parsed if isinstance(parsed, list) else None
     if not isinstance(items, list):
         raise ValueError("batch response must be a JSON object with items array")
     if len(items) != len(prompts):
@@ -292,12 +283,18 @@ def _generate_batch_with_split(**kwargs: Any) -> list[BatchGenerationItem]:
 
     try:
         call_kwargs = {
-            key: value
-            for key, value in kwargs.items()
-            if key not in {"min_batch_size", "continue_on_error"}
+            k: v
+            for k, v in kwargs.items()
+            if k not in {"min_batch_size", "continue_on_error"}
         }
         return _generate_batch_once(**call_kwargs)
     except Exception as exc:
+        # Retryable provider failures should be handled by the outer batch
+        # scheduler so the whole batch can be requeued instead of recursively
+        # split into many smaller failed requests.
+        if is_retryable_provider_error(exc):
+            raise
+
         if len(prompts) > min_batch_size:
             mid = len(prompts) // 2
             left = dict(kwargs, prompts=prompts[:mid])
@@ -340,6 +337,19 @@ def _telemetry(items: list[BatchGenerationItem]) -> dict[str, Any]:
         )
     out["total_tokens"] = out["prompt_tokens"] + out["completion_tokens"]
     return out
+
+
+def _error_records(
+    *,
+    prompts: list[PromptRecord],
+    error: Exception,
+    teacher_model: str,
+    provider_name: str,
+) -> list[BatchGenerationItem]:
+    return [
+        BatchGenerationItem(prompt=p, output="", response=None, error=str(error))
+        for p in prompts
+    ]
 
 
 def _control(controls: Any, name: str, default: Any) -> Any:
@@ -393,7 +403,6 @@ def run_hosted_generation(
     resume: bool = True,
 ) -> HostedGenerationResult:
     output = Path(output_path)
-
     effective_batch_size = int(batch_size or _control(controls, "batch_size", 1) or 1)
     effective_min_batch_size = int(min_batch_size or _control(controls, "min_batch_size", 1) or 1)
     effective_parallel = int(
@@ -405,6 +414,8 @@ def run_hosted_generation(
     effective_progress_interval = int(
         progress_interval or _control(controls, "progress_interval", 25) or 25
     )
+    max_requeues = int(_control(controls, "max_requeues", 3) or 0)
+    requeue_delay = float(_control(controls, "exhausted_retryable_requeue_delay_seconds", 0.0) or 0.0)
 
     if effective_batch_size <= 0:
         raise ValueError("batch_size must be greater than zero")
@@ -428,7 +439,6 @@ def run_hosted_generation(
 
     prompts_to_run = [prompt for prompt in prompts if prompt.id not in preexisting_ids]
     all_batches = list(enumerate(_chunked(prompts_to_run, effective_batch_size)))
-
     pending = [(batch_id, batch) for batch_id, batch in all_batches if batch_id not in completed_ids]
     skipped = len(preexisting_ids) + sum(
         len(batch) for batch_id, batch in all_batches if batch_id in completed_ids
@@ -441,99 +451,108 @@ def run_hosted_generation(
         return HostedGenerationResult(str(output), 0, skipped, 0)
 
     print(
-        "Hosted generation plan: "
-        f"prompts={len(prompts)} skipped={skipped} remaining={total} "
-        f"batches={len(pending)}/{len(all_batches)} "
-        f"batch_size={effective_batch_size} min_batch_size={effective_min_batch_size} "
-        f"parallel_requests={effective_parallel}",
+        f"Hosted generation plan: prompts={len(prompts)} skipped={skipped} remaining={total} "
+        f"batches={len(pending)}/{len(all_batches)} batch_size={effective_batch_size} "
+        f"min_batch_size={effective_min_batch_size} parallel_requests={effective_parallel}",
         flush=True,
     )
 
     written = errors = completed = 0
     next_progress = effective_progress_interval
     start = time.time()
+    requeues: dict[int, int] = {}
+
+    def submit(executor: ThreadPoolExecutor, batch_id: int, batch: list[PromptRecord]):
+        return executor.submit(
+            _generate_batch_with_split,
+            provider=provider,
+            prompts=batch,
+            teacher_model=teacher_model,
+            provider_name=provider_name,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            min_batch_size=effective_min_batch_size,
+            continue_on_error=continue_on_error,
+        )
 
     with ThreadPoolExecutor(max_workers=effective_parallel) as executor:
-        futures = {
-            executor.submit(
-                _generate_batch_with_split,
-                provider=provider,
-                prompts=batch,
-                teacher_model=teacher_model,
-                provider_name=provider_name,
-                max_output_tokens=max_output_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                min_batch_size=effective_min_batch_size,
-                continue_on_error=continue_on_error,
-            ): (batch_id, batch)
-            for batch_id, batch in pending
-        }
+        futures = {submit(executor, batch_id, batch): (batch_id, batch) for batch_id, batch in pending}
 
-        for batch_index, future in enumerate(as_completed(futures), start=1):
-            batch_id, batch = futures[future]
-            items = future.result()
-            records = []
+        while futures:
+            for future in as_completed(list(futures)):
+                batch_id, batch = futures.pop(future)
 
-            for item in items:
-                written += 1
-                completed += 1
-                if item.error:
-                    errors += 1
-                records.append(
-                    _record(
-                        prompt=item.prompt,
-                        output=item.output,
+                try:
+                    items = future.result()
+                except Exception as exc:
+                    if is_retryable_provider_error(exc) and requeues.get(batch_id, 0) < max_requeues:
+                        requeues[batch_id] = requeues.get(batch_id, 0) + 1
+                        if requeue_delay > 0:
+                            sleep(requeue_delay)
+                        futures[submit(executor, batch_id, batch)] = (batch_id, batch)
+                        continue
+
+                    if not continue_on_error:
+                        raise
+                    items = _error_records(
+                        prompts=batch,
+                        error=exc,
                         teacher_model=teacher_model,
                         provider_name=provider_name,
-                        response=item.response,
-                        error=item.error,
                     )
+
+                records = []
+                for item in items:
+                    written += 1
+                    completed += 1
+                    if item.error:
+                        errors += 1
+                    records.append(
+                        _record(
+                            prompt=item.prompt,
+                            output=item.output,
+                            teacher_model=teacher_model,
+                            provider_name=provider_name,
+                            response=item.response,
+                            error=item.error,
+                        )
+                    )
+
+                telemetry = _telemetry(items)
+                telemetry["retryable_provider_retries"] += requeues.get(batch_id, 0)
+                store.write_completed(
+                    batch_id=batch_id,
+                    prompt_ids=[p.id for p in batch],
+                    records=records,
+                    telemetry=telemetry,
                 )
 
-            store.write_completed(
-                batch_id=batch_id,
-                prompt_ids=[p.id for p in batch],
-                records=records,
-                telemetry=_telemetry(items),
-            )
-
-            if completed >= next_progress or completed >= total:
-                elapsed = max(0.001, time.time() - start)
-                metrics = store.telemetry_summary()
-                print(
-                    "Hosted generation progress: "
-                    f"batches={batch_index}/{len(pending)} "
-                    f"last_batch_records={len(items)} "
-                    f"completed={completed}/{total} "
-                    f"written={written} "
-                    f"errors={errors} "
-                    f"skipped={skipped} "
-                    f"elapsed_seconds={elapsed:.1f} "
-                    f"records_per_second={completed / elapsed:.2f} "
-                    f"prompt_tokens={metrics['prompt_tokens']} "
-                    f"completion_tokens={metrics['completion_tokens']} "
-                    f"retryable_provider_retries={metrics['retryable_provider_retries']} "
-                    f"adaptive_peak_in_flight_limit={metrics['adaptive_peak_in_flight_limit']}",
-                    flush=True,
-                )
-                while next_progress <= completed:
-                    next_progress += effective_progress_interval
+                if completed >= next_progress or completed >= total:
+                    elapsed = max(0.001, time.time() - start)
+                    metrics = store.telemetry_summary()
+                    print(
+                        f"Hosted generation progress: batches={metrics['batches']}/{len(pending)} "
+                        f"last_batch_records={len(items)} completed={completed}/{total} "
+                        f"written={written} errors={errors} skipped={skipped} "
+                        f"elapsed_seconds={elapsed:.1f} records_per_second={completed / elapsed:.2f} "
+                        f"prompt_tokens={metrics['prompt_tokens']} completion_tokens={metrics['completion_tokens']} "
+                        f"retryable_provider_retries={metrics['retryable_provider_retries']} "
+                        f"adaptive_peak_in_flight_limit={metrics['adaptive_peak_in_flight_limit']}",
+                        flush=True,
+                    )
+                    while next_progress <= completed:
+                        next_progress += effective_progress_interval
+                break
 
     total_materialized = store.materialize_raw(preexisting_records=preexisting_records)
     elapsed = max(0.001, time.time() - start)
     metrics = store.telemetry_summary()
     print(
-        "Hosted generation completed: "
-        f"records={total_materialized} "
-        f"new_records={written} "
-        f"errors={errors} "
-        f"elapsed_seconds={elapsed:.1f} "
-        f"records_per_second={written / elapsed:.2f} "
-        f"prompt_tokens={metrics['prompt_tokens']} "
-        f"completion_tokens={metrics['completion_tokens']} "
-        f"retry_count={metrics['retry_count']} "
-        f"retryable_provider_retries={metrics['retryable_provider_retries']} "
+        f"Hosted generation completed: records={total_materialized} new_records={written} "
+        f"errors={errors} elapsed_seconds={elapsed:.1f} records_per_second={written / elapsed:.2f} "
+        f"prompt_tokens={metrics['prompt_tokens']} completion_tokens={metrics['completion_tokens']} "
+        f"retry_count={metrics['retry_count']} retryable_provider_retries={metrics['retryable_provider_retries']} "
         f"adaptive_window_increases={metrics['adaptive_window_increases']} "
         f"adaptive_window_decreases={metrics['adaptive_window_decreases']} "
         f"adaptive_peak_in_flight_limit={metrics['adaptive_peak_in_flight_limit']}",
