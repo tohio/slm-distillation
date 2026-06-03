@@ -56,6 +56,16 @@ providers:
       adaptive_cooldown_max_seconds: 60.0
       adaptive_cooldown_multiplier: 2.0
 
+      request_timeout_seconds: 300
+      json_mode: true
+      adaptive_slow_start_enabled: true
+      adaptive_slow_start_multiplier: 2.0
+      adaptive_increase_successes_per_step: 64
+      adaptive_increase_step: 16
+      adaptive_rate_limit_burst_threshold: 4
+      adaptive_rate_limit_window_seconds: 2.0
+      adaptive_sustained_rate_limit_attempt_window: 60
+      adaptive_sustained_rate_limit_threshold: 20
 output:
   model_name: slm-125m-groq-oss-120b-distilled
   source_model_name: slm-125m
