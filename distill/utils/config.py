@@ -75,12 +75,19 @@ class DpoSourceConfig:
     model_name: str
     checkpoint_path: str
     tokenizer_path: str
+    revision: str | None
 
 
 @dataclass(frozen=True)
 class DpoDataConfig:
     dataset_id: str
+    dataset_config_name: str | None
     dataset_split: str
+    id_field: str | None
+    prompt_field: str
+    chosen_field: str
+    rejected_field: str
+    metadata_field: str | None
 
 
 @dataclass(frozen=True)
@@ -88,14 +95,27 @@ class DpoTrainingConfig:
     method: str
     beta: float
     max_length: int
-    max_prompt_length: int
     per_device_train_batch_size: int
     gradient_accumulation_steps: int
     learning_rate: float
-    num_train_epochs: int
+    num_train_epochs: float
     warmup_ratio: float
+    weight_decay: float
+    max_grad_norm: float
+    lr_scheduler_type: str
+    logging_steps: int
+    save_steps: int
+    save_total_limit: int
     bf16: bool
+    gradient_checkpointing: bool
+    dataloader_num_workers: int
+    dataset_num_proc: int
+    loss_type: str
+    truncation_mode: str
+    precompute_ref_log_probs: bool
     seed: int
+    max_steps: int | None
+    max_train_samples: int | None
 
 
 @dataclass(frozen=True)
@@ -397,33 +417,133 @@ def load_dpo_config(path: str | Path) -> DpoConfig:
     if method != "dpo":
         raise ValueError("DPO config requires training.method='dpo'")
 
+    training_config = DpoTrainingConfig(
+        method=method,
+        beta=_require_float_or_int(training, "beta"),
+        max_length=_require_int(training, "max_length"),
+        per_device_train_batch_size=_require_int(
+            training, "per_device_train_batch_size"
+        ),
+        gradient_accumulation_steps=_require_int(
+            training, "gradient_accumulation_steps"
+        ),
+        learning_rate=_require_float_or_int(training, "learning_rate"),
+        num_train_epochs=_require_float_or_int(training, "num_train_epochs"),
+        warmup_ratio=_require_float_or_int(training, "warmup_ratio"),
+        weight_decay=_require_float_or_int(training, "weight_decay"),
+        max_grad_norm=_require_float_or_int(training, "max_grad_norm"),
+        lr_scheduler_type=_require_str(training, "lr_scheduler_type"),
+        logging_steps=_require_int(training, "logging_steps"),
+        save_steps=_require_int(training, "save_steps"),
+        save_total_limit=_require_int(training, "save_total_limit"),
+        bf16=_require_bool(training, "bf16"),
+        gradient_checkpointing=_require_bool(
+            training, "gradient_checkpointing"
+        ),
+        dataloader_num_workers=_require_int(training, "dataloader_num_workers"),
+        dataset_num_proc=_require_int(training, "dataset_num_proc"),
+        loss_type=_require_str(training, "loss_type"),
+        truncation_mode=_require_str(training, "truncation_mode"),
+        precompute_ref_log_probs=_require_bool(
+            training, "precompute_ref_log_probs"
+        ),
+        seed=_require_int(training, "seed"),
+        max_steps=_optional_int(training, "max_steps"),
+        max_train_samples=_optional_int(training, "max_train_samples"),
+    )
+    positive_ints = {
+        "max_length": training_config.max_length,
+        "per_device_train_batch_size": (
+            training_config.per_device_train_batch_size
+        ),
+        "gradient_accumulation_steps": (
+            training_config.gradient_accumulation_steps
+        ),
+        "logging_steps": training_config.logging_steps,
+        "save_steps": training_config.save_steps,
+        "save_total_limit": training_config.save_total_limit,
+        "dataset_num_proc": training_config.dataset_num_proc,
+    }
+    for field, value in positive_ints.items():
+        if value <= 0:
+            raise ValueError(f"DPO training.{field} must be positive")
+    if training_config.dataloader_num_workers < 0:
+        raise ValueError(
+            "DPO training.dataloader_num_workers must be non-negative"
+        )
+    if training_config.beta <= 0:
+        raise ValueError("DPO training.beta must be positive")
+    if training_config.learning_rate <= 0:
+        raise ValueError("DPO training.learning_rate must be positive")
+    if training_config.num_train_epochs <= 0:
+        raise ValueError("DPO training.num_train_epochs must be positive")
+    if not 0 <= training_config.warmup_ratio < 1:
+        raise ValueError(
+            "DPO training.warmup_ratio must be greater than or equal to zero "
+            "and less than one"
+        )
+    if training_config.weight_decay < 0:
+        raise ValueError(
+            "DPO training.weight_decay must be greater than or equal to zero"
+        )
+    if training_config.max_grad_norm <= 0:
+        raise ValueError("DPO training.max_grad_norm must be positive")
+    if training_config.truncation_mode != "keep_start":
+        raise ValueError(
+            "DPO training.truncation_mode must be 'keep_start'"
+        )
+    supported_loss_types = {
+        "sigmoid",
+        "hinge",
+        "ipo",
+        "exo_pair",
+        "nca_pair",
+        "robust",
+        "bco_pair",
+        "sppo_hard",
+        "aot",
+        "aot_unpaired",
+        "apo_zero",
+        "apo_down",
+        "discopop",
+        "sft",
+        "sigmoid_norm",
+    }
+    if training_config.loss_type not in supported_loss_types:
+        raise ValueError(
+            "DPO training.loss_type is not supported by the configured TRL API"
+        )
+    if (
+        training_config.max_steps is not None
+        and training_config.max_steps <= 0
+    ):
+        raise ValueError("DPO training.max_steps must be positive when set")
+    if (
+        training_config.max_train_samples is not None
+        and training_config.max_train_samples <= 0
+    ):
+        raise ValueError(
+            "DPO training.max_train_samples must be positive when set"
+        )
+
     return DpoConfig(
         source=DpoSourceConfig(
             model_name=_require_str(source, "model_name"),
             checkpoint_path=_require_str(source, "checkpoint_path"),
             tokenizer_path=_require_str(source, "tokenizer_path"),
+            revision=_optional_str(source, "revision"),
         ),
         data=DpoDataConfig(
             dataset_id=_require_str(data_cfg, "dataset_id"),
+            dataset_config_name=_optional_str(data_cfg, "dataset_config_name"),
             dataset_split=_require_str(data_cfg, "dataset_split"),
+            id_field=_optional_str(data_cfg, "id_field"),
+            prompt_field=_require_str(data_cfg, "prompt_field"),
+            chosen_field=_require_str(data_cfg, "chosen_field"),
+            rejected_field=_require_str(data_cfg, "rejected_field"),
+            metadata_field=_optional_str(data_cfg, "metadata_field"),
         ),
-        training=DpoTrainingConfig(
-            method=method,
-            beta=_require_float_or_int(training, "beta"),
-            max_length=_require_int(training, "max_length"),
-            max_prompt_length=_require_int(training, "max_prompt_length"),
-            per_device_train_batch_size=_require_int(
-                training, "per_device_train_batch_size"
-            ),
-            gradient_accumulation_steps=_require_int(
-                training, "gradient_accumulation_steps"
-            ),
-            learning_rate=_require_float_or_int(training, "learning_rate"),
-            num_train_epochs=_require_int(training, "num_train_epochs"),
-            warmup_ratio=_require_float_or_int(training, "warmup_ratio"),
-            bf16=_require_bool(training, "bf16"),
-            seed=_require_int(training, "seed"),
-        ),
+        training=training_config,
         output=DpoOutputConfig(
             model_name=_require_str(output, "model_name"),
             run_dir=_require_str(output, "run_dir"),

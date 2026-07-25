@@ -98,6 +98,23 @@ The response trainer:
 - supports bounded smoke runs and checkpoint resume;
 - saves the model and tokenizer to the configured final checkpoint.
 
+The DPO configuration also accepts local directories or Hugging Face model IDs.
+Preference field names are configurable and are normalized to `prompt`,
+`chosen`, and `rejected`. Standard text and conversational message-list
+datasets are supported.
+
+The DPO validator rejects:
+
+- missing configured columns;
+- empty prompts or completions;
+- mixed standard and conversational fields;
+- identical chosen and rejected responses;
+- duplicate IDs.
+
+DPO training uses the response-distilled checkpoint as both the initial policy
+and fixed reference policy. The DPO-aligned model and tokenizer are saved to
+the configured final checkpoint.
+
 Response distillation permits unrelated teacher and student tokenizers because
 the student tokenizes saved text. Logit distillation requires tokenizer
 compatibility.
@@ -130,11 +147,12 @@ Excluded:
 |---|---|
 | Dataset production | External; published by `slm-synthetic-data` |
 | Response config and input validation | Implemented |
+| DPO config and input validation | Implemented |
 | Artifact handoff | Implemented |
 | Tokenizer compatibility gate | Implemented |
 | Model-card generation | Implemented |
 | Response trainer | Implemented |
-| DPO trainer | Configuration and dry-run plan only |
+| DPO trainer | Implemented |
 | Logit trainer | Configuration and compatibility plan only |
 | Evaluation | Not implemented |
 | Hugging Face model export | Not implemented |
@@ -166,6 +184,8 @@ make train-response-dry-run
 make validate-response-inputs RESPONSE_DATA_LIMIT=100
 make train-response RESPONSE_MAX_STEPS=5 RESPONSE_MAX_TRAIN_SAMPLES=64
 make train-dpo-dry-run
+make validate-dpo-inputs DPO_DATA_LIMIT=100
+make train-dpo DPO_MAX_STEPS=5 DPO_MAX_TRAIN_SAMPLES=64
 make train-logit-dry-run
 make export-dry-run
 ```
@@ -188,6 +208,20 @@ to a larger model such as SmolLM2-1.7B, reduce the per-device batch size and
 increase gradient accumulation as needed to retain the intended effective
 batch size. Update the model name and all output paths together.
 
+Run DPO after response training has produced its final checkpoint:
+
+```bash
+make validate-dpo-inputs DPO_DATA_LIMIT=100
+make train-dpo
+```
+
+For multi-GPU DPO:
+
+```bash
+make train-dpo \
+  DPO_LAUNCH="accelerate launch --multi_gpu --num_processes 2"
+```
+
 ## Configuration
 
 | File | Purpose |
@@ -205,10 +239,10 @@ batch size. Update the model name and all output paths together.
 make test
 ```
 
-The test suite covers response configuration, model resolution, dataset schema
-conversion, response-only loss masking, sequence truncation, DPO and logit
-configuration, tokenizer compatibility, artifact handoff, model-card
-generation, and export planning.
+The test suite covers response and preference configuration, model resolution,
+dataset schema conversion, response-only loss masking, sequence truncation,
+DPO and logit configuration, tokenizer compatibility, artifact handoff,
+model-card generation, and export planning.
 
 ## Related Projects
 

@@ -1,7 +1,7 @@
 model:
   model_name: smollm2-135m-deepseek-distilled
   checkpoint_path: runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final
-  tokenizer_path: HuggingFaceTB/SmolLM2-135M-Instruct
+  tokenizer_path: runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final
   export_repo: tohio/smollm2-135m-deepseek-distilled
 
 model_card:

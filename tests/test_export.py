@@ -10,6 +10,7 @@ def test_load_export_config_reads_default_file() -> None:
 
     assert config.model.model_name == "smollm2-135m-deepseek-distilled"
     assert config.model.export_repo == "tohio/smollm2-135m-deepseek-distilled"
+    assert config.model.tokenizer_path == config.model.checkpoint_path
     assert config.model_card.teacher_model == "deepseek/deepseek-v4-flash"
     assert config.model_card.teacher_provider == "openrouter"
     assert config.model_card.distillation_type == "response"

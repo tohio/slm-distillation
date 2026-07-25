@@ -13,11 +13,16 @@ RESPONSE_MAX_TRAIN_SAMPLES ?=
 RESPONSE_RESUME_FROM_CHECKPOINT ?=
 RESPONSE_LAUNCH ?= $(PYTHON)
 DPO_CONFIG ?= configs/dpo.yaml
+DPO_DATA_LIMIT ?= 100
+DPO_MAX_STEPS ?=
+DPO_MAX_TRAIN_SAMPLES ?=
+DPO_RESUME_FROM_CHECKPOINT ?=
+DPO_LAUNCH ?= $(PYTHON)
 LOGIT_CONFIG ?= configs/logit_distill.yaml
 EXPORT_CONFIG ?= configs/export.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
 
-.PHONY: help install test test-unit verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts validate-response-inputs train-response train-response-dry-run train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run
+.PHONY: help install test test-unit verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts validate-response-inputs validate-dpo-inputs train-response train-response-dry-run train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run
 
 help:
 > @echo ""
@@ -31,6 +36,7 @@ help:
 > @echo "  validate-response-inputs Validate the response model and dataset"
 > @echo "  train-response          Train the response-distillation stage"
 > @echo "  train-response-dry-run  Print the resolved response plan"
+> @echo "  validate-dpo-inputs     Validate the DPO model and dataset"
 > @echo "  train-dpo               Train the DPO stage"
 > @echo "  train-dpo-dry-run       Print the resolved DPO plan"
 > @echo "  train-logit             Train with local teacher logits"
@@ -108,13 +114,22 @@ train-logit-dry-run:
 >   --dry-run
 
 train-dpo:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
->   --config $(DPO_CONFIG)
+> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py \
+>   --config $(DPO_CONFIG) \
+>   $(if $(DPO_MAX_STEPS),--max-steps $(DPO_MAX_STEPS)) \
+>   $(if $(DPO_MAX_TRAIN_SAMPLES),--max-train-samples $(DPO_MAX_TRAIN_SAMPLES)) \
+>   $(if $(DPO_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(DPO_RESUME_FROM_CHECKPOINT))
 
 train-dpo-dry-run:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
 >   --config $(DPO_CONFIG) \
 >   --dry-run
+
+validate-dpo-inputs:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
+>   --config $(DPO_CONFIG) \
+>   --validate-inputs \
+>   --limit $(DPO_DATA_LIMIT)
 
 export:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/export_model.py \

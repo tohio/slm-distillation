@@ -14,10 +14,18 @@ def test_load_dpo_config_reads_default_file() -> None:
     assert config.source.checkpoint_path == (
         "runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final"
     )
+    assert config.source.tokenizer_path == config.source.checkpoint_path
+    assert config.source.revision is None
     assert config.data.dataset_id == "tohio/slm-synthetic-distillation-dpo"
     assert config.data.dataset_split == "train"
+    assert config.data.prompt_field == "prompt"
+    assert config.data.chosen_field == "chosen"
+    assert config.data.rejected_field == "rejected"
     assert config.training.method == "dpo"
     assert config.training.beta == 0.1
+    assert config.training.loss_type == "sigmoid"
+    assert config.training.max_length == 1024
+    assert config.training.max_steps is None
     assert config.training.bf16 is True
     assert config.output.final_checkpoint_dir == (
         "runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final"
@@ -35,6 +43,9 @@ def test_build_dpo_training_plan() -> None:
     assert plan.output_dir == config.output.checkpoint_dir
     assert plan.final_checkpoint_dir == config.output.final_checkpoint_dir
     assert plan.beta == config.training.beta
+    assert plan.loss_type == "sigmoid"
+    assert plan.max_length == 1024
+    assert plan.max_steps is None
 
 
 def test_load_dpo_config_rejects_wrong_method(tmp_path: Path) -> None:

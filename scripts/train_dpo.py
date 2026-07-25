@@ -5,7 +5,11 @@ import argparse
 import json
 from dataclasses import asdict
 
-from distill.training.train_dpo import load_dpo_training_plan, train_dpo
+from distill.training.train_dpo import (
+    load_dpo_training_plan,
+    train_dpo,
+    validate_dpo_inputs,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -15,10 +19,39 @@ def parse_args() -> argparse.Namespace:
         default="configs/dpo.yaml",
         help="Path to DPO config YAML.",
     )
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the resolved DPO training plan without starting training.",
+    )
+    mode.add_argument(
+        "--validate-inputs",
+        action="store_true",
+        help="Resolve the source checkpoint and inspect the preference dataset.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Number of preference rows to inspect with --validate-inputs.",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Override training.max_steps for a bounded smoke run.",
+    )
+    parser.add_argument(
+        "--max-train-samples",
+        type=int,
+        default=None,
+        help="Override training.max_train_samples.",
+    )
+    parser.add_argument(
+        "--resume-from-checkpoint",
+        default=None,
+        help="Trainer checkpoint directory to resume.",
     )
     return parser.parse_args()
 
@@ -31,7 +64,21 @@ def main() -> None:
         print(json.dumps(asdict(plan), indent=2, sort_keys=True))
         return
 
-    train_dpo(args.config)
+    if args.validate_inputs:
+        result = validate_dpo_inputs(
+            args.config,
+            limit=args.limit,
+        )
+        print(json.dumps(asdict(result), indent=2, sort_keys=True))
+        return
+
+    result = train_dpo(
+        args.config,
+        max_steps=args.max_steps,
+        max_train_samples=args.max_train_samples,
+        resume_from_checkpoint=args.resume_from_checkpoint,
+    )
+    print(json.dumps(asdict(result), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":
