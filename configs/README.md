@@ -4,6 +4,7 @@ Runtime configuration for training, evaluation, export, and artifact handoff.
 
 | File | Purpose |
 |---|---|
+| `response_distill.yaml` | Response student, dataset schema mapping, and outputs |
 | `dpo.yaml` | DPO source checkpoint, published preference dataset, hyperparameters, and outputs |
 | `logit_distill.yaml` | Local teacher/student checkpoints, compatibility rules, and hyperparameters |
 | `eval.yaml` | Evaluation settings |

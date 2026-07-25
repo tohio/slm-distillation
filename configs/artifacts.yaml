@@ -1,15 +1,15 @@
 artifact:
-  run_name: slm-125m-deepseek-distilled
+  run_name: smollm2-135m-deepseek-distilled
   backend: s3
   s3_bucket_env: S3_BUCKET
   s3_prefix_env: S3_PREFIX
-  local_dir: artifacts/slm-125m-deepseek-distilled
-  bundle_path: artifacts/slm-125m-deepseek-distilled.tar.gz
+  local_dir: artifacts/smollm2-135m-deepseek-distilled
+  bundle_path: artifacts/smollm2-135m-deepseek-distilled.tar.gz
   delete_remote_extra: true
   required:
-    - runs/slm-125m-deepseek-distilled/dpo/checkpoints/final/config.json
+    - runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final/config.json
   include:
-    - runs/slm-125m-deepseek-distilled/response_distill/checkpoints/final/*
-    - runs/slm-125m-deepseek-distilled/dpo/checkpoints/final/*
-    - runs/slm-125m-deepseek-distilled/eval/*
-    - runs/slm-125m-deepseek-distilled/model_card.md
+    - runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final/*
+    - runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final/*
+    - runs/smollm2-135m-deepseek-distilled/eval/*
+    - runs/smollm2-135m-deepseek-distilled/model_card.md

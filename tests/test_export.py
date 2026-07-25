@@ -8,8 +8,8 @@ from distill.utils.config import load_export_config
 def test_load_export_config_reads_default_file() -> None:
     config = load_export_config("configs/export.yaml")
 
-    assert config.model.model_name == "slm-125m-deepseek-distilled"
-    assert config.model.export_repo == "tohio/slm-125m-deepseek-distilled"
+    assert config.model.model_name == "smollm2-135m-deepseek-distilled"
+    assert config.model.export_repo == "tohio/smollm2-135m-deepseek-distilled"
     assert config.model_card.teacher_model == "deepseek/deepseek-v4-flash"
     assert config.model_card.teacher_provider == "openrouter"
     assert config.model_card.distillation_type == "response"
@@ -40,8 +40,8 @@ def test_build_model_card_contains_required_metadata() -> None:
     config = load_export_config("configs/export.yaml")
     card = build_model_card(config)
 
-    assert card.model_name == "slm-125m-deepseek-distilled"
-    assert "# slm-125m-deepseek-distilled" in card.content
+    assert card.model_name == "smollm2-135m-deepseek-distilled"
+    assert "# smollm2-135m-deepseek-distilled" in card.content
     assert "deepseek/deepseek-v4-flash" in card.content
     assert "openrouter" in card.content
     assert "DPO-aligned" in card.content

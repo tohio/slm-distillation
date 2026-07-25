@@ -6,12 +6,14 @@
 
 PYTHON := python3
 PYTHONPATH := .
+RESPONSE_CONFIG ?= configs/response_distill.yaml
+RESPONSE_DATA_LIMIT ?= 100
 DPO_CONFIG ?= configs/dpo.yaml
 LOGIT_CONFIG ?= configs/logit_distill.yaml
 EXPORT_CONFIG ?= configs/export.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
 
-.PHONY: help install test test-unit verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run
+.PHONY: help install test test-unit verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts validate-response-inputs train-response-dry-run train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run
 
 help:
 > @echo ""
@@ -22,6 +24,8 @@ help:
 > @echo "  install                 Install Python dependencies"
 > @echo ""
 > @echo "Training:"
+> @echo "  validate-response-inputs Validate the response model and dataset"
+> @echo "  train-response-dry-run  Print the resolved response plan"
 > @echo "  train-dpo               Train the DPO stage"
 > @echo "  train-dpo-dry-run       Print the resolved DPO plan"
 > @echo "  train-logit             Train with local teacher logits"
@@ -52,9 +56,20 @@ test:
 test-unit:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m pytest tests
 
+validate-response-inputs:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_response_distill.py \
+>   --config $(RESPONSE_CONFIG) \
+>   --validate-inputs \
+>   --limit $(RESPONSE_DATA_LIMIT)
+
+train-response-dry-run:
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_response_distill.py \
+>   --config $(RESPONSE_CONFIG) \
+>   --dry-run
+
 verify-artifacts:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/verify_artifacts.py \
->   --manifest artifacts/slm-125m-deepseek-distilled/manifest.json
+>   --manifest artifacts/smollm2-135m-deepseek-distilled/manifest.json
 
 pack-artifacts:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/pack_artifacts.py \

@@ -1,8 +1,8 @@
 
 source:
-  model_name: slm-125m-deepseek-distilled
-  checkpoint_path: runs/slm-125m-deepseek-distilled/response_distill/checkpoints/final
-  tokenizer_path: ../slm/results/runs/125m/tokenizer
+  model_name: smollm2-135m-deepseek-distilled
+  checkpoint_path: runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
+  tokenizer_path: HuggingFaceTB/SmolLM2-135M-Instruct
 
 data:
   dataset_id: tohio/slm-synthetic-distillation-dpo
@@ -22,7 +22,7 @@ training:
   seed: 42
 
 output:
-  model_name: slm-125m-deepseek-distilled
-  run_dir: runs/slm-125m-deepseek-distilled/dpo
-  checkpoint_dir: runs/slm-125m-deepseek-distilled/dpo/checkpoints
-  final_checkpoint_dir: runs/slm-125m-deepseek-distilled/dpo/checkpoints/final
+  model_name: smollm2-135m-deepseek-distilled
+  run_dir: runs/smollm2-135m-deepseek-distilled/dpo
+  checkpoint_dir: runs/smollm2-135m-deepseek-distilled/dpo/checkpoints
+  final_checkpoint_dir: runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final

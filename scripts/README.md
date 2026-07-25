@@ -4,7 +4,7 @@ Command-line entry points for training, evaluation, export, and artifacts.
 
 | Script | Purpose |
 |---|---|
-| `train_response_distill.py` | Train a student from the published response dataset |
+| `train_response_distill.py` | Inspect response config, validate inputs, or start response training |
 | `train_dpo.py` | Train or inspect the DPO stage |
 | `train_logit_distill.py` | Train or inspect local logit distillation |
 | `run_eval.py` | Evaluate base and distilled checkpoints |
@@ -14,3 +14,6 @@ Command-line entry points for training, evaluation, export, and artifacts.
 | `unpack_artifacts.py` | Unpack a model artifact bundle |
 | `push_artifacts.py` | Push model artifacts to S3 |
 | `pull_artifacts.py` | Pull model artifacts from S3 |
+
+Response input validation resolves the configured Hugging Face model and
+inspects the selected dataset rows without starting training.

@@ -4,6 +4,8 @@ Core package for model training, evaluation, export, and artifact handoff.
 
 | Directory | Purpose |
 |---|---|
+| `data/` | Published response-dataset loading and schema conversion |
+| `models/` | Local and Hugging Face model reference resolution |
 | `training/` | Response, DPO, and logit training stages |
 | `eval/` | Base and distilled checkpoint evaluation |
 | `export/` | Model-card generation and model export |

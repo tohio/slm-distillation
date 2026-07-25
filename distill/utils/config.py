@@ -8,6 +8,39 @@ import yaml
 
 
 @dataclass(frozen=True)
+class ResponseModelConfig:
+    model_name_or_path: str
+    tokenizer_name_or_path: str
+    revision: str | None
+
+
+@dataclass(frozen=True)
+class ResponseDataConfig:
+    dataset_id: str
+    dataset_config_name: str | None
+    dataset_split: str
+    id_field: str | None
+    prompt_field: str
+    response_field: str
+    metadata_field: str | None
+
+
+@dataclass(frozen=True)
+class ResponseOutputConfig:
+    model_name: str
+    run_dir: str
+    checkpoint_dir: str
+    final_checkpoint_dir: str
+
+
+@dataclass(frozen=True)
+class ResponseDistillConfig:
+    model: ResponseModelConfig
+    data: ResponseDataConfig
+    output: ResponseOutputConfig
+
+
+@dataclass(frozen=True)
 class DpoSourceConfig:
     model_name: str
     checkpoint_path: str
@@ -189,6 +222,45 @@ def _require_bool(data: dict[str, Any], key: str) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"config requires boolean '{key}'")
     return value
+
+
+def _optional_str(data: dict[str, Any], key: str) -> str | None:
+    value = data.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"config optional field '{key}' must be a non-empty string")
+    return value
+
+
+def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
+    data = load_yaml(path)
+    model = _require_mapping(data, "model")
+    data_cfg = _require_mapping(data, "data")
+    output = _require_mapping(data, "output")
+
+    return ResponseDistillConfig(
+        model=ResponseModelConfig(
+            model_name_or_path=_require_str(model, "model_name_or_path"),
+            tokenizer_name_or_path=_require_str(model, "tokenizer_name_or_path"),
+            revision=_optional_str(model, "revision"),
+        ),
+        data=ResponseDataConfig(
+            dataset_id=_require_str(data_cfg, "dataset_id"),
+            dataset_config_name=_optional_str(data_cfg, "dataset_config_name"),
+            dataset_split=_require_str(data_cfg, "dataset_split"),
+            id_field=_optional_str(data_cfg, "id_field"),
+            prompt_field=_require_str(data_cfg, "prompt_field"),
+            response_field=_require_str(data_cfg, "response_field"),
+            metadata_field=_optional_str(data_cfg, "metadata_field"),
+        ),
+        output=ResponseOutputConfig(
+            model_name=_require_str(output, "model_name"),
+            run_dir=_require_str(output, "run_dir"),
+            checkpoint_dir=_require_str(output, "checkpoint_dir"),
+            final_checkpoint_dir=_require_str(output, "final_checkpoint_dir"),
+        ),
+    )
 
 
 def load_dpo_config(path: str | Path) -> DpoConfig:

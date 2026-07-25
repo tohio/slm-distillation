@@ -1,0 +1,19 @@
+model:
+  model_name_or_path: HuggingFaceTB/SmolLM2-135M-Instruct
+  tokenizer_name_or_path: HuggingFaceTB/SmolLM2-135M-Instruct
+  revision: main
+
+data:
+  dataset_id: tohio/slm-synthetic-distillation-sft
+  dataset_config_name: null
+  dataset_split: train
+  id_field: id
+  prompt_field: prompt
+  response_field: response
+  metadata_field: metadata
+
+output:
+  model_name: smollm2-135m-deepseek-distilled
+  run_dir: runs/smollm2-135m-deepseek-distilled/response_distill
+  checkpoint_dir: runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final

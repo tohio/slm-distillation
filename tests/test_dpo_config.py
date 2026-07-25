@@ -10,9 +10,9 @@ from distill.utils.config import load_dpo_config
 def test_load_dpo_config_reads_default_file() -> None:
     config = load_dpo_config("configs/dpo.yaml")
 
-    assert config.source.model_name == "slm-125m-deepseek-distilled"
+    assert config.source.model_name == "smollm2-135m-deepseek-distilled"
     assert config.source.checkpoint_path == (
-        "runs/slm-125m-deepseek-distilled/response_distill/checkpoints/final"
+        "runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final"
     )
     assert config.data.dataset_id == "tohio/slm-synthetic-distillation-dpo"
     assert config.data.dataset_split == "train"
@@ -20,7 +20,7 @@ def test_load_dpo_config_reads_default_file() -> None:
     assert config.training.beta == 0.1
     assert config.training.bf16 is True
     assert config.output.final_checkpoint_dir == (
-        "runs/slm-125m-deepseek-distilled/dpo/checkpoints/final"
+        "runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final"
     )
 
 
