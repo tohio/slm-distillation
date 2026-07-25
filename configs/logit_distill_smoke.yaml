@@ -37,15 +37,15 @@ distillation:
   weight_decay: 0.0
   max_grad_norm: 1.0
   lr_scheduler_type: cosine
-  logging_steps: 10
-  save_steps: 250
-  save_total_limit: 2
+  logging_steps: 1
+  save_steps: 5
+  save_total_limit: 1
   bf16: true
   gradient_checkpointing: true
   dataloader_num_workers: 4
   seed: 42
-  max_steps: null
-  max_train_samples: null
+  max_steps: 5
+  max_train_samples: 64
 
 compatibility:
   require_same_tokenizer: true
@@ -59,6 +59,6 @@ hardware:
     - a100
 
 output:
-  run_dir: runs/smollm2-135m-logit-distilled/logit_distill
-  checkpoint_dir: runs/smollm2-135m-logit-distilled/logit_distill/checkpoints
-  final_checkpoint_dir: runs/smollm2-135m-logit-distilled/logit_distill/checkpoints/final
+  run_dir: runs/smoke/smollm2-135m-logit-distilled/logit_distill
+  checkpoint_dir: runs/smoke/smollm2-135m-logit-distilled/logit_distill/checkpoints
+  final_checkpoint_dir: runs/smoke/smollm2-135m-logit-distilled/logit_distill/checkpoints/final

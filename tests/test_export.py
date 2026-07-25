@@ -37,6 +37,18 @@ def test_build_export_plan() -> None:
     assert plan.model_card_path == config.model_card.output_path
 
 
+def test_logit_export_config_consumes_logit_dpo_checkpoint() -> None:
+    config = load_export_config("configs/export_logit.yaml")
+
+    assert config.model.model_name == "smollm2-135m-logit-distilled"
+    assert config.model.tokenizer_path == config.model.checkpoint_path
+    assert config.model_card.teacher_model == (
+        "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+    )
+    assert config.model_card.teacher_provider == "local"
+    assert config.model_card.distillation_type == "logit"
+
+
 def test_build_model_card_contains_required_metadata() -> None:
     config = load_export_config("configs/export.yaml")
     card = build_model_card(config)
@@ -51,13 +63,17 @@ def test_build_model_card_contains_required_metadata() -> None:
 def test_export_model_writes_model_card(tmp_path: Path) -> None:
     config_path = tmp_path / "export.yaml"
     model_card_path = tmp_path / "model_card.md"
+    checkpoint_path = tmp_path / "checkpoint"
+    tokenizer_path = tmp_path / "tokenizer"
+    checkpoint_path.mkdir()
+    tokenizer_path.mkdir()
 
     config_path.write_text(
         f'''
 model:
   model_name: slm-test-teacher-distilled
-  checkpoint_path: checkpoint
-  tokenizer_path: tokenizer
+  checkpoint_path: {checkpoint_path}
+  tokenizer_path: {tokenizer_path}
   export_repo: tohio/slm-test-teacher-distilled
 
 model_card:
@@ -84,3 +100,68 @@ export:
     assert plan.model_name == "slm-test-teacher-distilled"
     assert model_card_path.exists()
     assert "example/model" in model_card_path.read_text(encoding="utf-8")
+
+
+def test_export_model_pushes_checkpoint_tokenizer_and_card(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "export.yaml"
+    checkpoint_path = tmp_path / "checkpoint"
+    tokenizer_path = tmp_path / "tokenizer"
+    model_card_path = tmp_path / "model_card.md"
+    checkpoint_path.mkdir()
+    tokenizer_path.mkdir()
+
+    config_path.write_text(
+        f"""
+model:
+  model_name: test-model
+  checkpoint_path: {checkpoint_path}
+  tokenizer_path: {tokenizer_path}
+  export_repo: example/test-model
+model_card:
+  output_path: {model_card_path}
+  source_checkpoint: example/source
+  teacher_model: example/teacher
+  teacher_provider: local
+  distillation_type: logit
+  dpo_applied: true
+  response_dataset: example/response
+  preference_dataset: example/preference
+  eval_results_path: runs/test/eval/results.json
+export:
+  push_to_hub: false
+  include_tokenizer: true
+  private: true
+""",
+        encoding="utf-8",
+    )
+
+    class FakeHubApi:
+        def __init__(self) -> None:
+            self.calls = []
+
+        def create_repo(self, **kwargs) -> None:
+            self.calls.append(("create_repo", kwargs))
+
+        def upload_folder(self, **kwargs) -> None:
+            self.calls.append(("upload_folder", kwargs))
+
+        def upload_file(self, **kwargs) -> None:
+            self.calls.append(("upload_file", kwargs))
+
+    hub_api = FakeHubApi()
+    plan = export_model(
+        str(config_path),
+        push_to_hub=True,
+        hub_api=hub_api,
+    )
+
+    assert plan.push_to_hub is True
+    assert [name for name, _ in hub_api.calls] == [
+        "create_repo",
+        "upload_folder",
+        "upload_folder",
+        "upload_file",
+    ]
+    assert hub_api.calls[-1][1]["path_in_repo"] == "README.md"

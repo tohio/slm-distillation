@@ -1,0 +1,43 @@
+model:
+  model_name_or_path: HuggingFaceTB/SmolLM2-135M-Instruct
+  tokenizer_name_or_path: HuggingFaceTB/SmolLM2-135M-Instruct
+  revision: main
+
+data:
+  dataset_id: tohio/slm-synthetic-distillation-sft
+  dataset_config_name: null
+  dataset_split: train
+  id_field: id
+  prompt_field: prompt
+  response_field: response
+  metadata_field: metadata
+
+formatting:
+  mode: chat
+  system_prompt: null
+
+training:
+  max_length: 1024
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 0.00002
+  num_train_epochs: 3
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  lr_scheduler_type: cosine
+  logging_steps: 1
+  save_steps: 5
+  save_total_limit: 1
+  bf16: true
+  gradient_checkpointing: true
+  dataloader_num_workers: 4
+  seed: 42
+  max_steps: 5
+  max_train_samples: 64
+
+output:
+  model_name: smollm2-135m-deepseek-distilled-smoke
+  run_dir: runs/smoke/smollm2-135m-deepseek-distilled/response_distill
+  checkpoint_dir: runs/smoke/smollm2-135m-deepseek-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/smoke/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final

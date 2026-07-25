@@ -33,6 +33,16 @@ def test_load_artifact_config_reads_default_file() -> None:
     )
 
 
+def test_load_logit_artifact_config_uses_logit_branch() -> None:
+    config = load_artifact_config("configs/artifacts_logit.yaml")
+
+    assert config.run_name == "smollm2-135m-logit-distilled"
+    assert (
+        "runs/smollm2-135m-logit-distilled/dpo/checkpoints/final/config.json"
+        in config.required
+    )
+
+
 def test_parse_s3_uri() -> None:
     location = parse_s3_uri("s3://my-bucket/slm-distillation/run")
 

@@ -18,3 +18,8 @@ Command-line entry points for training, evaluation, export, and artifacts.
 Response and DPO input validation resolve their configured checkpoints and
 inspect selected dataset rows without starting training. Both trainers support
 bounded sample/step overrides and checkpoint resume.
+
+Logit validation additionally resolves both models and compares their complete
+tokenizer vocabularies and special-token maps. Evaluation validates both
+response and preference datasets. Export uses `--push-to-hub` for an explicit
+Hugging Face upload.

@@ -1,0 +1,15 @@
+artifact:
+  run_name: smollm2-135m-logit-distilled
+  backend: s3
+  s3_bucket_env: S3_BUCKET
+  s3_prefix_env: S3_PREFIX
+  local_dir: artifacts/smollm2-135m-logit-distilled
+  bundle_path: artifacts/smollm2-135m-logit-distilled.tar.gz
+  delete_remote_extra: true
+  required:
+    - runs/smollm2-135m-logit-distilled/dpo/checkpoints/final/config.json
+  include:
+    - runs/smollm2-135m-logit-distilled/logit_distill/checkpoints/final/*
+    - runs/smollm2-135m-logit-distilled/dpo/checkpoints/final/*
+    - runs/smollm2-135m-logit-distilled/eval/*
+    - runs/smollm2-135m-logit-distilled/model_card.md

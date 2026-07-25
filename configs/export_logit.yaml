@@ -1,0 +1,21 @@
+model:
+  model_name: smollm2-135m-logit-distilled
+  checkpoint_path: runs/smollm2-135m-logit-distilled/dpo/checkpoints/final
+  tokenizer_path: runs/smollm2-135m-logit-distilled/dpo/checkpoints/final
+  export_repo: tohio/smollm2-135m-logit-distilled
+
+model_card:
+  output_path: runs/smollm2-135m-logit-distilled/model_card.md
+  source_checkpoint: HuggingFaceTB/SmolLM2-135M-Instruct
+  teacher_model: HuggingFaceTB/SmolLM2-1.7B-Instruct
+  teacher_provider: local
+  distillation_type: logit
+  dpo_applied: true
+  response_dataset: tohio/slm-synthetic-distillation-sft
+  preference_dataset: tohio/slm-synthetic-distillation-dpo
+  eval_results_path: runs/smollm2-135m-logit-distilled/eval/results.json
+
+export:
+  push_to_hub: false
+  include_tokenizer: true
+  private: false

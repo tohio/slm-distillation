@@ -4,7 +4,11 @@ from pathlib import Path
 import pytest
 
 from distill.training.train_dpo import build_dpo_training_plan
-from distill.utils.config import load_dpo_config
+from distill.utils.config import (
+    load_dpo_config,
+    load_logit_distill_config,
+    load_response_distill_config,
+)
 
 
 def test_load_dpo_config_reads_default_file() -> None:
@@ -46,6 +50,38 @@ def test_build_dpo_training_plan() -> None:
     assert plan.loss_type == "sigmoid"
     assert plan.max_length == 1024
     assert plan.max_steps is None
+
+
+def test_logit_dpo_config_consumes_logit_final_checkpoint() -> None:
+    config = load_dpo_config("configs/dpo_logit.yaml")
+
+    assert config.source.checkpoint_path == (
+        "runs/smollm2-135m-logit-distilled/"
+        "logit_distill/checkpoints/final"
+    )
+    assert config.source.tokenizer_path == config.source.checkpoint_path
+    assert config.output.final_checkpoint_dir == (
+        "runs/smollm2-135m-logit-distilled/dpo/checkpoints/final"
+    )
+
+
+def test_smoke_branches_are_isolated_and_preserve_handoffs() -> None:
+    response = load_response_distill_config(
+        "configs/response_distill_smoke.yaml"
+    )
+    response_dpo = load_dpo_config("configs/dpo_smoke.yaml")
+    logit = load_logit_distill_config("configs/logit_distill_smoke.yaml")
+    logit_dpo = load_dpo_config("configs/dpo_logit_smoke.yaml")
+
+    assert response.output.final_checkpoint_dir.startswith("runs/smoke/")
+    assert (
+        response_dpo.source.checkpoint_path
+        == response.output.final_checkpoint_dir
+    )
+    assert response_dpo.output.final_checkpoint_dir.startswith("runs/smoke/")
+    assert logit.output.final_checkpoint_dir.startswith("runs/smoke/")
+    assert logit_dpo.source.checkpoint_path == logit.output.final_checkpoint_dir
+    assert logit_dpo.output.final_checkpoint_dir.startswith("runs/smoke/")
 
 
 def test_load_dpo_config_rejects_wrong_method(tmp_path: Path) -> None:

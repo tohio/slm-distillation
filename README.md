@@ -13,7 +13,7 @@ teacher generation is owned by
 | Student | `HuggingFaceTB/SmolLM2-135M-Instruct` |
 | Response dataset | `tohio/slm-synthetic-distillation-sft` |
 | Preference dataset | `tohio/slm-synthetic-distillation-dpo` |
-| Local logit teacher | Configurable local checkpoint |
+| Local logit teacher | `HuggingFaceTB/SmolLM2-1.7B-Instruct` |
 
 The production datasets contain 30,000 response-distillation records and
 15,000 DPO preference pairs.
@@ -55,8 +55,26 @@ local teacher logits
   -> logit-distilled checkpoint
 ```
 
-Teacher and student tokenizers must have identical vocabularies, token IDs, and
-special tokens. The compatibility gate runs before training.
+The default logit branch uses SmolLM2-1.7B-Instruct as teacher and
+SmolLM2-135M-Instruct as student. Teacher and student tokenizers must have
+identical vocabularies, token IDs, and special tokens. The compatibility gate
+runs before training.
+
+### Evaluation and export
+
+Each branch evaluates the base, distilled, and DPO checkpoints on two signals:
+
+- teacher-response exact match, normalized exact match, token F1, and output
+  completeness;
+- chosen-over-rejected preference accuracy based on conditional log
+  probabilities.
+
+The default configs sample the published training splits for pipeline
+validation. For final reporting, point `data` and `preference_data` at
+independent held-out splits or datasets.
+
+Export validates the final checkpoint, writes a provenance model card, and can
+push the checkpoint and tokenizer directly to Hugging Face.
 
 ## Model and Dataset Swapping
 
@@ -153,9 +171,9 @@ Excluded:
 | Model-card generation | Implemented |
 | Response trainer | Implemented |
 | DPO trainer | Implemented |
-| Logit trainer | Configuration and compatibility plan only |
-| Evaluation | Not implemented |
-| Hugging Face model export | Not implemented |
+| Logit trainer | Implemented |
+| Response and preference evaluation | Implemented |
+| Hugging Face model export | Implemented |
 
 ## Installation
 
@@ -187,40 +205,50 @@ make train-dpo-dry-run
 make validate-dpo-inputs DPO_DATA_LIMIT=100
 make train-dpo DPO_MAX_STEPS=5 DPO_MAX_TRAIN_SAMPLES=64
 make train-logit-dry-run
+make validate-logit-inputs LOGIT_DATA_LIMIT=100
+make eval-response-dry-run
+make eval-logit-dry-run
 make export-dry-run
+make export-logit-dry-run
 ```
 
-Run the full configured response stage with:
+Run isolated smoke workflows first:
+
+```bash
+make train-response-smoke
+make train-dpo-smoke
+make eval-response-smoke
+
+make train-logit-smoke
+make train-dpo-logit-smoke
+make eval-logit-smoke
+```
+
+Smoke outputs are written under `runs/smoke/`; full outputs are written under
+`runs/`. The two paths never share checkpoints.
+
+Run either full branch with:
 
 ```bash
 make train-response
+make train-dpo
+make eval-response
+make export-push
+
+make train-logit
+make train-dpo-logit
+make eval-logit
+make export-logit-push
 ```
 
-For multi-GPU execution, provide an Accelerate launcher:
-
-```bash
-make train-response \
-  RESPONSE_LAUNCH="accelerate launch --multi_gpu --num_processes 2"
-```
+`HF_TOKEN` is required for private inputs and Hugging Face pushes. The local
+logit trainer intentionally requires exactly one supported GPU because teacher
+and student are colocated. Response and DPO can use an Accelerate launcher via
+`RESPONSE_LAUNCH` and `DPO_LAUNCH`.
 
 The default response config targets SmolLM2-135M with bfloat16. When swapping
-to a larger model such as SmolLM2-1.7B, reduce the per-device batch size and
-increase gradient accumulation as needed to retain the intended effective
-batch size. Update the model name and all output paths together.
-
-Run DPO after response training has produced its final checkpoint:
-
-```bash
-make validate-dpo-inputs DPO_DATA_LIMIT=100
-make train-dpo
-```
-
-For multi-GPU DPO:
-
-```bash
-make train-dpo \
-  DPO_LAUNCH="accelerate launch --multi_gpu --num_processes 2"
-```
+models, update the source model, tokenizer, downstream checkpoint paths, model
+card provenance, and export repository together.
 
 ## Configuration
 
@@ -229,9 +257,11 @@ make train-dpo \
 | `configs/response_distill.yaml` | Response student, formatting, training, dataset schema, and outputs |
 | `configs/dpo.yaml` | DPO source model, published dataset, training, and outputs |
 | `configs/logit_distill.yaml` | Local teacher/student and logit-distillation settings |
-| `configs/eval.yaml` | Evaluation settings |
-| `configs/export.yaml` | Final checkpoint, model-card provenance, and export settings |
-| `configs/artifacts.yaml` | Model artifact packaging and S3 handoff |
+| `configs/dpo_logit.yaml` | DPO stage for the logit branch |
+| `configs/eval.yaml`, `configs/eval_logit.yaml` | Branch evaluation settings |
+| `configs/export.yaml`, `configs/export_logit.yaml` | Branch model-card and Hugging Face export settings |
+| `configs/artifacts.yaml`, `configs/artifacts_logit.yaml` | Branch artifact packaging and S3 handoff |
+| `configs/*_smoke.yaml` | Isolated bounded-run checkpoints and evaluation |
 
 ## Tests
 
@@ -241,8 +271,8 @@ make test
 
 The test suite covers response and preference configuration, model resolution,
 dataset schema conversion, response-only loss masking, sequence truncation,
-DPO and logit configuration, tokenizer compatibility, artifact handoff,
-model-card generation, and export planning.
+DPO and logit configuration, tokenizer compatibility, evaluation output,
+artifact handoff, model-card generation, and Hugging Face export orchestration.
 
 ## Related Projects
 

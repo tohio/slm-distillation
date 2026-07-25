@@ -19,6 +19,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print the resolved export plan without writing files.",
     )
+    parser.add_argument(
+        "--push-to-hub",
+        action="store_true",
+        help="Upload the checkpoint, tokenizer, and model card to Hugging Face.",
+    )
     return parser.parse_args()
 
 
@@ -30,7 +35,10 @@ def main() -> None:
         print(json.dumps(asdict(plan), indent=2, sort_keys=True))
         return
 
-    plan = export_model(args.config)
+    plan = export_model(
+        args.config,
+        push_to_hub=True if args.push_to_hub else None,
+    )
     print(f"Model: {plan.model_name}")
     print(f"Export repo: {plan.export_repo}")
     print(f"Model card: {plan.model_card_path}")

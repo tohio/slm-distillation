@@ -4,12 +4,12 @@ models:
     tokenizer_name_or_path: HuggingFaceTB/SmolLM2-135M-Instruct
     revision: main
   - name: response_distilled
-    model_name_or_path: runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
-    tokenizer_name_or_path: runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
+    model_name_or_path: runs/smoke/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
+    tokenizer_name_or_path: runs/smoke/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
     revision: null
   - name: response_dpo
-    model_name_or_path: runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final
-    tokenizer_name_or_path: runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final
+    model_name_or_path: runs/smoke/smollm2-135m-deepseek-distilled/dpo/checkpoints/final
+    tokenizer_name_or_path: runs/smoke/smollm2-135m-deepseek-distilled/dpo/checkpoints/final
     revision: null
 
 data:
@@ -40,8 +40,8 @@ generation:
   do_sample: false
   temperature: 0.0
   seed: 42
-  limit: 200
+  limit: 20
 
 output:
-  results_path: runs/smollm2-135m-deepseek-distilled/eval/results.json
-  predictions_dir: runs/smollm2-135m-deepseek-distilled/eval/predictions
+  results_path: runs/smoke/smollm2-135m-deepseek-distilled/eval/results.json
+  predictions_dir: runs/smoke/smollm2-135m-deepseek-distilled/eval/predictions

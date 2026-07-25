@@ -13,8 +13,9 @@ Coverage includes:
 - response-dataset schema conversion and validation
 - response-only label masking and sequence truncation
 - preference-dataset schema conversion and validation
-- DPO, logit, and export configuration
+- DPO, logit, evaluation, and export configuration
 - tokenizer compatibility
-- model-card generation and export planning
+- response metrics and branch checkpoint comparisons
+- model-card generation and Hugging Face export orchestration
 - artifact packaging, checksums, and handoff
 - environment loading

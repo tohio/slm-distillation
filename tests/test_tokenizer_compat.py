@@ -6,6 +6,7 @@ import pytest
 from distill.utils.tokenizer_compat import (
     assert_tokenizer_compatible,
     check_tokenizer_compatibility,
+    check_tokenizer_reference_compatibility,
 )
 
 
@@ -72,3 +73,31 @@ def test_check_tokenizer_compatibility_rejects_special_token_mismatch(
 
     assert result.compatible is False
     assert result.reason == "special_tokens_mismatch"
+
+
+def test_check_tokenizer_reference_compatibility_accepts_matching_refs() -> None:
+    class FakeTokenizer:
+        special_tokens_map = {"eos_token": "<eos>"}
+
+        def get_vocab(self):
+            return {"<eos>": 0, "hello": 1}
+
+    calls = []
+
+    def loader(reference, **kwargs):
+        calls.append((reference, kwargs))
+        return FakeTokenizer()
+
+    result = check_tokenizer_reference_compatibility(
+        "example/teacher",
+        "example/student",
+        teacher_revision="teacher-rev",
+        student_revision="student-rev",
+        token="secret",
+        tokenizer_loader=loader,
+    )
+
+    assert result.compatible is True
+    assert calls[0][1]["revision"] == "teacher-rev"
+    assert calls[1][1]["revision"] == "student-rev"
+    assert calls[0][1]["token"] == "secret"

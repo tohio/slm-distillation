@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 
@@ -151,4 +152,91 @@ def assert_tokenizer_compatible(
             f"student={result.student_tokenizer_path})"
         )
 
+    return result
+
+
+TokenizerLoader = Callable[..., Any]
+
+
+def check_tokenizer_reference_compatibility(
+    teacher_tokenizer_reference: str,
+    student_tokenizer_reference: str,
+    *,
+    teacher_revision: str | None = None,
+    student_revision: str | None = None,
+    token: str | None = None,
+    tokenizer_loader: TokenizerLoader | None = None,
+) -> TokenizerCompatibilityResult:
+    if tokenizer_loader is None:
+        from transformers import AutoTokenizer
+
+        tokenizer_loader = AutoTokenizer.from_pretrained
+
+    teacher_kwargs: dict[str, Any] = {}
+    student_kwargs: dict[str, Any] = {}
+    if teacher_revision is not None:
+        teacher_kwargs["revision"] = teacher_revision
+    if student_revision is not None:
+        student_kwargs["revision"] = student_revision
+    if token is not None:
+        teacher_kwargs["token"] = token
+        student_kwargs["token"] = token
+
+    teacher = tokenizer_loader(
+        teacher_tokenizer_reference,
+        **teacher_kwargs,
+    )
+    student = tokenizer_loader(
+        student_tokenizer_reference,
+        **student_kwargs,
+    )
+
+    if teacher.get_vocab() != student.get_vocab():
+        return TokenizerCompatibilityResult(
+            compatible=False,
+            teacher_tokenizer_path=teacher_tokenizer_reference,
+            student_tokenizer_path=student_tokenizer_reference,
+            reason="vocab_mismatch",
+        )
+
+    if teacher.special_tokens_map != student.special_tokens_map:
+        return TokenizerCompatibilityResult(
+            compatible=False,
+            teacher_tokenizer_path=teacher_tokenizer_reference,
+            student_tokenizer_path=student_tokenizer_reference,
+            reason="special_tokens_mismatch",
+        )
+
+    return TokenizerCompatibilityResult(
+        compatible=True,
+        teacher_tokenizer_path=teacher_tokenizer_reference,
+        student_tokenizer_path=student_tokenizer_reference,
+        reason="compatible",
+    )
+
+
+def assert_tokenizer_references_compatible(
+    teacher_tokenizer_reference: str,
+    student_tokenizer_reference: str,
+    *,
+    teacher_revision: str | None = None,
+    student_revision: str | None = None,
+    token: str | None = None,
+    tokenizer_loader: TokenizerLoader | None = None,
+) -> TokenizerCompatibilityResult:
+    result = check_tokenizer_reference_compatibility(
+        teacher_tokenizer_reference,
+        student_tokenizer_reference,
+        teacher_revision=teacher_revision,
+        student_revision=student_revision,
+        token=token,
+        tokenizer_loader=tokenizer_loader,
+    )
+    if not result.compatible:
+        raise ValueError(
+            "Tokenizer compatibility check failed: "
+            f"{result.reason} "
+            f"(teacher={result.teacher_tokenizer_path}, "
+            f"student={result.student_tokenizer_path})"
+        )
     return result
