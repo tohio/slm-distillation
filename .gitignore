@@ -12,12 +12,6 @@ venv/
 # Environment
 .env
 
-# Generated teacher/data outputs
-data/raw_teacher/*.jsonl
-data/validated/*.jsonl
-data/rejected/*.jsonl
-data/distill/*.jsonl
-
 # Runs/checkpoints
 runs/
 checkpoints/

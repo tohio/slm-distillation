@@ -11,7 +11,8 @@ model_card:
   teacher_provider: openrouter
   distillation_type: response
   dpo_applied: true
-  preference_dataset: data/preference/dpo_pairs.jsonl
+  response_dataset: tohio/slm-synthetic-distillation-sft
+  preference_dataset: tohio/slm-synthetic-distillation-dpo
   eval_results_path: runs/slm-125m-deepseek-distilled/eval/results.json
 
 export:

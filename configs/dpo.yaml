@@ -5,8 +5,8 @@ source:
   tokenizer_path: ../slm/results/runs/125m/tokenizer
 
 data:
-  preference_dataset_path: data/preference/dpo_pairs.jsonl
-  rejected_path: data/rejected/dpo_rejected.jsonl
+  dataset_id: tohio/slm-synthetic-distillation-dpo
+  dataset_split: train
 
 training:
   method: dpo

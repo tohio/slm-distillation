@@ -10,7 +10,8 @@ from distill.utils.config import DpoConfig, load_dpo_config
 class DpoTrainingPlan:
     source_checkpoint: str
     tokenizer_path: str
-    preference_dataset_path: str
+    dataset_id: str
+    dataset_split: str
     output_dir: str
     final_checkpoint_dir: str
     beta: float
@@ -22,7 +23,8 @@ def build_dpo_training_plan(config: DpoConfig) -> DpoTrainingPlan:
     return DpoTrainingPlan(
         source_checkpoint=config.source.checkpoint_path,
         tokenizer_path=config.source.tokenizer_path,
-        preference_dataset_path=config.data.preference_dataset_path,
+        dataset_id=config.data.dataset_id,
+        dataset_split=config.data.dataset_split,
         output_dir=config.output.checkpoint_dir,
         final_checkpoint_dir=config.output.final_checkpoint_dir,
         beta=config.training.beta,
@@ -38,6 +40,6 @@ def load_dpo_training_plan(config_path: str) -> DpoTrainingPlan:
 def train_dpo(config_path: str) -> None:
     load_dpo_training_plan(config_path)
     raise NotImplementedError(
-        "DPO training is configured as a first-class stage. "
-        "The trainer implementation will be added after preference dataset support."
+        "DPO training is configured to consume the published preference dataset. "
+        "The trainer implementation is not available yet."
     )

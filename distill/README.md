@@ -1,18 +1,11 @@
 # distill Package
 
-Core Python package for SLM distillation workflows.
-
-## Subpackages
+Core package for model training, evaluation, export, and artifact handoff.
 
 | Directory | Purpose |
 |---|---|
-| `artifacts/` | Required generated JSONL artifact handoff utilities. |
-| `providers/` | Hosted and local teacher provider adapters. |
-| `generation/` | Prompt loading and teacher response generation. |
-| `validation/` | Schema checks and quality filters. |
-| `datasets/` | Conversion from validated responses to training datasets. |
-| `preference/` | Preference-pair dataset builders for DPO. |
-| `training/` | Response, logit, and DPO training stages. |
-| `export/` | Model-card generation and export planning. |
-| `eval/` | Evaluation and output comparison utilities. |
-| `utils/` | Shared config, IO, pricing, and logging helpers. |
+| `training/` | Response, DPO, and logit training stages |
+| `eval/` | Base and distilled checkpoint evaluation |
+| `export/` | Model-card generation and model export |
+| `artifacts/` | Run artifact packaging, verification, and S3 handoff |
+| `utils/` | Configuration, environment, and tokenizer compatibility helpers |

@@ -35,6 +35,7 @@ DPO-aligned distilled SLM model variant.
 | Teacher provider | `{config.model_card.teacher_provider}` |
 | Distillation type | `{config.model_card.distillation_type}` |
 | DPO applied | `{config.model_card.dpo_applied}` |
+| Response dataset | `{config.model_card.response_dataset}` |
 | Preference dataset | `{config.model_card.preference_dataset}` |
 
 ## Evaluation

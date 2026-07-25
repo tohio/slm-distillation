@@ -14,7 +14,8 @@ def test_load_dpo_config_reads_default_file() -> None:
     assert config.source.checkpoint_path == (
         "runs/slm-125m-deepseek-distilled/response_distill/checkpoints/final"
     )
-    assert config.data.preference_dataset_path == "data/preference/dpo_pairs.jsonl"
+    assert config.data.dataset_id == "tohio/slm-synthetic-distillation-dpo"
+    assert config.data.dataset_split == "train"
     assert config.training.method == "dpo"
     assert config.training.beta == 0.1
     assert config.training.bf16 is True
@@ -29,7 +30,8 @@ def test_build_dpo_training_plan() -> None:
 
     assert plan.source_checkpoint == config.source.checkpoint_path
     assert plan.tokenizer_path == config.source.tokenizer_path
-    assert plan.preference_dataset_path == config.data.preference_dataset_path
+    assert plan.dataset_id == config.data.dataset_id
+    assert plan.dataset_split == config.data.dataset_split
     assert plan.output_dir == config.output.checkpoint_dir
     assert plan.final_checkpoint_dir == config.output.final_checkpoint_dir
     assert plan.beta == config.training.beta
@@ -44,8 +46,8 @@ def test_load_dpo_config_rejects_wrong_method(tmp_path: Path) -> None:
         "  tokenizer_path: tokenizer\n"
         "\n"
         "data:\n"
-        "  preference_dataset_path: preference.jsonl\n"
-        "  rejected_path: rejected.jsonl\n"
+        "  dataset_id: example/preference\n"
+        "  dataset_split: train\n"
         "\n"
         "training:\n"
         "  method: sft\n"

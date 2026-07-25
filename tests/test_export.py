@@ -14,6 +14,14 @@ def test_load_export_config_reads_default_file() -> None:
     assert config.model_card.teacher_provider == "openrouter"
     assert config.model_card.distillation_type == "response"
     assert config.model_card.dpo_applied is True
+    assert (
+        config.model_card.response_dataset
+        == "tohio/slm-synthetic-distillation-sft"
+    )
+    assert (
+        config.model_card.preference_dataset
+        == "tohio/slm-synthetic-distillation-dpo"
+    )
     assert config.export.push_to_hub is False
 
 
@@ -58,7 +66,8 @@ model_card:
   teacher_provider: openrouter
   distillation_type: response
   dpo_applied: true
-  preference_dataset: data/preference/dpo_pairs.jsonl
+  response_dataset: example/response
+  preference_dataset: example/preference
   eval_results_path: runs/slm-test/eval/results.json
 
 export:

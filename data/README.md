@@ -1,19 +1,11 @@
 # Data
 
-Local data layout for distillation runs.
+Training datasets are loaded from Hugging Face and are not generated or
+committed in this repository.
 
-Most files in this directory are generated artifacts and should not be committed, except seed prompts, README files, and `.gitkeep` placeholders.
+Default datasets:
 
-## Layout
+- `tohio/slm-synthetic-distillation-sft`
+- `tohio/slm-synthetic-distillation-dpo`
 
-| Directory | Purpose |
-|---|---|
-| `prompts/` | Prompt/task seed files used for teacher generation. |
-| `raw_teacher/` | Raw teacher outputs from hosted or local inference. |
-| `validated/` | Accepted teacher outputs after validation/filtering. |
-| `rejected/` | Rejected teacher outputs with validation reasons. |
-| `distill/` | Final student-training JSONL datasets. |
-
-## Artifact Policy
-
-Generated JSONL files are ignored by git. Persist important run artifacts to external storage before terminating an instance.
+Local dataset caches are managed by the Hugging Face libraries.

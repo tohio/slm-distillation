@@ -2,20 +2,11 @@
 
 Student post-training stages.
 
-## Files
+| File | Input | Output | Status |
+|---|---|---|---|
+| `train_response_distill.py` | Published response dataset | Response-distilled checkpoint | Not implemented |
+| `train_dpo.py` | Published preference dataset | DPO-aligned checkpoint | Config plan only |
+| `train_logit_distill.py` | Local teacher and student | Logit-distilled checkpoint | Compatibility plan only |
 
-| File | Purpose |
-|---|---|
-| `train_response_distill.py` | Response-distillation trainer. |
-| `train_logit_distill.py` | Local logit-distillation trainer scaffold with tokenizer gate. |
-| `train_dpo.py` | DPO training stage scaffold. |
-
-## Stages
-
-| Stage | Input | Output |
-|---|---|---|
-| Response distillation | Validated teacher responses | Intermediate distilled checkpoint |
-| Logit distillation | Local teacher logits | Intermediate distilled checkpoint |
-| DPO | Preference pairs | Final DPO-aligned distilled checkpoint |
-
-Local logit distillation requires tokenizer compatibility between teacher and student.
+Response and DPO datasets are loaded from Hugging Face. Logit distillation
+requires compatible local teacher and student tokenizers.

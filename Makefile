@@ -1,55 +1,46 @@
 # ============================================================
-# SLM Distillation — Makefile
+# SLM Distillation
 # ============================================================
 
 .RECIPEPREFIX := >
 
 PYTHON := python3
 PYTHONPATH := .
-CONFIG ?= configs/response_distill_openrouter.yaml
-PROMPT_CONFIG ?= configs/prompts.yaml
-TEACHERS_CONFIG ?= configs/teachers.yaml
 DPO_CONFIG ?= configs/dpo.yaml
 LOGIT_CONFIG ?= configs/logit_distill.yaml
-PREFERENCE_CONFIG ?= configs/preference.yaml
 EXPORT_CONFIG ?= configs/export.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
-LIMIT ?=
-TARGET_TOKENS ?=
-TARGET_RECORDS ?=
-ESTIMATED_TOKENS_PER_RECORD ?= 256
-ALLOW_REPEAT_PROMPTS ?=
-BATCH_SIZE ?=
-MIN_BATCH_SIZE ?=
-PARALLEL_REQUESTS ?=
-PROGRESS_INTERVAL ?=
 
-.PHONY: build-prompts help install test test-unit generate generate-dry-run validate dataset token-report preference artifact-handoff verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run response-pipeline response-pipeline-dry-run clean-generated
+.PHONY: help install test test-unit verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run
 
 help:
 > @echo ""
 > @echo "SLM Distillation"
 > @echo "================"
 > @echo ""
-> @echo "Usage: make <target> [CONFIG=path] [TEACHERS_CONFIG=path] [LIMIT=N]"
-> @echo ""
 > @echo "Setup:"
-> @echo "  install                    Install Python dependencies"
+> @echo "  install                 Install Python dependencies"
 > @echo ""
-> @echo "Pipeline:"
-> @echo "  generate-dry-run            Generate local dry-run teacher responses"
-> @echo "  generate                    Generate teacher responses through configured provider"
-> @echo "  validate                    Validate raw teacher responses"
-> @echo "  dataset                     Build response-distillation dataset"
-> @echo "  response-pipeline-dry-run   Dry-run generate -> validate -> dataset"
-> @echo "  response-pipeline           Generate -> validate -> dataset"
+> @echo "Training:"
+> @echo "  train-dpo               Train the DPO stage"
+> @echo "  train-dpo-dry-run       Print the resolved DPO plan"
+> @echo "  train-logit             Train with local teacher logits"
+> @echo "  train-logit-dry-run     Print the resolved logit plan"
+> @echo ""
+> @echo "Export:"
+> @echo "  export                  Generate the model card and export"
+> @echo "  export-dry-run          Print the resolved export plan"
+> @echo ""
+> @echo "Artifacts:"
+> @echo "  verify-artifacts        Verify an artifact manifest"
+> @echo "  pack-artifacts          Build a local artifact bundle"
+> @echo "  unpack-artifacts        Unpack a local artifact bundle"
+> @echo "  push-artifacts          Push run artifacts to S3"
+> @echo "  pull-artifacts          Pull run artifacts from S3"
 > @echo ""
 > @echo "Tests:"
-> @echo "  test                        Run full test suite"
-> @echo "  test-unit                   Run unit tests"
-> @echo ""
-> @echo "Cleanup:"
-> @echo "  clean-generated             Remove generated JSONL files and runs"
+> @echo "  test                    Run the full test suite"
+> @echo "  test-unit               Run unit tests"
 > @echo ""
 
 install:
@@ -60,55 +51,6 @@ test:
 
 test-unit:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m pytest tests
-
-build-prompts:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_prompts.py \
->   --config $(PROMPT_CONFIG) \
->   $(if $(TARGET_RECORDS),--target-records $(TARGET_RECORDS),)
-
-generate:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/generate_teacher_responses.py \
->   --config $(CONFIG) \
->   --teachers $(TEACHERS_CONFIG) \
->   $(if $(LIMIT),--limit $(LIMIT),) \
->   $(if $(TARGET_TOKENS),--target-tokens $(TARGET_TOKENS),) \
->   $(if $(ESTIMATED_TOKENS_PER_RECORD),--estimated-tokens-per-record $(ESTIMATED_TOKENS_PER_RECORD),) \
->   $(if $(ALLOW_REPEAT_PROMPTS),--allow-repeat-prompts,) \
->   $(if $(BATCH_SIZE),--batch-size $(BATCH_SIZE),) \
->   $(if $(MIN_BATCH_SIZE),--min-batch-size $(MIN_BATCH_SIZE),) \
->   $(if $(PARALLEL_REQUESTS),--parallel-requests $(PARALLEL_REQUESTS),) \
->   $(if $(PROGRESS_INTERVAL),--progress-interval $(PROGRESS_INTERVAL),)
-
-generate-dry-run:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/generate_teacher_responses.py \
->   --config $(CONFIG) \
->   --teachers $(TEACHERS_CONFIG) \
->   $(if $(LIMIT),--limit $(LIMIT),) \
->   $(if $(TARGET_TOKENS),--target-tokens $(TARGET_TOKENS),) \
->   $(if $(ESTIMATED_TOKENS_PER_RECORD),--estimated-tokens-per-record $(ESTIMATED_TOKENS_PER_RECORD),) \
->   $(if $(ALLOW_REPEAT_PROMPTS),--allow-repeat-prompts,) \
->   $(if $(BATCH_SIZE),--batch-size $(BATCH_SIZE),) \
->   $(if $(MIN_BATCH_SIZE),--min-batch-size $(MIN_BATCH_SIZE),) \
->   $(if $(PARALLEL_REQUESTS),--parallel-requests $(PARALLEL_REQUESTS),) \
->   $(if $(PROGRESS_INTERVAL),--progress-interval $(PROGRESS_INTERVAL),) \
->   --dry-run
-
-validate:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/validate_teacher_responses.py \
->   --config $(CONFIG)
-
-dataset:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_dataset.py \
->   --config $(CONFIG)
-
-token-report:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/report_token_counts.py
-
-preference:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/build_preference_dataset.py \
->   --config $(PREFERENCE_CONFIG)
-
-artifact-handoff: pack-artifacts push-artifacts
 
 verify-artifacts:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/verify_artifacts.py \
@@ -155,15 +97,3 @@ export-dry-run:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/export_model.py \
 >   --config $(EXPORT_CONFIG) \
 >   --dry-run
-
-response-pipeline: build-prompts generate validate dataset
-
-response-pipeline-dry-run: build-prompts generate-dry-run validate dataset
-
-clean-generated:
-> rm -f data/raw_teacher/*.jsonl
-> rm -f data/validated/*.jsonl
-> rm -f data/rejected/*.jsonl
-> rm -f data/distill/*.jsonl
-> rm -f data/preference/*.jsonl
-> rm -rf runs/

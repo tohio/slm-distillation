@@ -1,14 +1,9 @@
-# Utils
-
-Shared helper modules.
-
-## Files
+# Utilities
 
 | File | Purpose |
 |---|---|
-| `config.py` | YAML config loading and typed config objects. |
-| `env.py` | `.env` loading helpers. |
-| `io.py` | Shared file IO helpers. |
-| `pricing.py` | Lightweight token-cost estimation helpers. |
-| `tokenizer_compat.py` | Tokenizer compatibility checks for local logit distillation. |
-| `logging.py` | Logging helpers. |
+| `config.py` | Typed YAML configuration loading |
+| `env.py` | `.env` loading |
+| `tokenizer_compat.py` | Tokenizer compatibility checks for logit distillation |
+| `io.py` | Shared file IO placeholder |
+| `logging.py` | Shared logging placeholder |

@@ -23,8 +23,14 @@ def test_load_artifact_config_reads_default_file() -> None:
     assert config.s3_bucket_env == "S3_BUCKET"
     assert config.s3_prefix_env == "S3_PREFIX"
     assert config.delete_remote_extra is True
-    assert "data/distill/response_distill.jsonl" in config.required
-    assert "data/distill/*.jsonl" in config.include
+    assert (
+        "runs/slm-125m-deepseek-distilled/dpo/checkpoints/final/config.json"
+        in config.required
+    )
+    assert (
+        "runs/slm-125m-deepseek-distilled/dpo/checkpoints/final/*"
+        in config.include
+    )
 
 
 def test_parse_s3_uri() -> None:
@@ -34,27 +40,31 @@ def test_parse_s3_uri() -> None:
     assert location.prefix == "slm-distillation/run/"
 
 
-def test_resolve_s3_uri_from_env() -> None:
-    config = load_artifact_config("configs/artifacts.yaml")
+def test_resolve_s3_uri_from_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_path = Path("configs/artifacts.yaml").resolve()
+    (tmp_path / ".env").write_text(
+        "S3_BUCKET=test-bucket\nS3_PREFIX=distillation\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    config = load_artifact_config(config_path)
     uri = resolve_s3_uri(config)
 
-    assert uri.startswith("s3://")
-    assert uri.endswith("/slm-125m-deepseek-distilled/")
+    assert uri == "s3://test-bucket/distillation/slm-125m-deepseek-distilled/"
 
 
 def test_collect_artifact_files_uses_include_patterns(tmp_path: Path) -> None:
-    (tmp_path / "data/distill").mkdir(parents=True)
-    (tmp_path / "data/distill/response_distill.jsonl").write_text(
+    (tmp_path / "runs/test/checkpoints/final").mkdir(parents=True)
+    (tmp_path / "runs/test/checkpoints/final/config.json").write_text(
         "{}\n",
         encoding="utf-8",
     )
-    (tmp_path / "data/raw_teacher").mkdir(parents=True)
-    (tmp_path / "data/raw_teacher/raw.jsonl").write_text("{}\n", encoding="utf-8")
 
-    files = collect_artifact_files(["data/distill/*.jsonl"], root=tmp_path)
+    files = collect_artifact_files(["runs/test/checkpoints/final/*"], root=tmp_path)
 
     assert [path.relative_to(tmp_path).as_posix() for path in files] == [
-        "data/distill/response_distill.jsonl"
+        "runs/test/checkpoints/final/config.json"
     ]
 
 
@@ -71,9 +81,9 @@ artifact:
   bundle_path: artifacts/test-run.tar.gz
   delete_remote_extra: true
   required:
-    - data/distill/response_distill.jsonl
+    - runs/test/checkpoints/final/config.json
   include:
-    - data/distill/*.jsonl
+    - runs/test/checkpoints/final/*
 ''',
         encoding="utf-8",
     )
@@ -85,9 +95,9 @@ artifact:
 
 
 def test_stage_artifacts_writes_manifest_and_verifies(tmp_path: Path) -> None:
-    (tmp_path / "data/distill").mkdir(parents=True)
-    (tmp_path / "data/distill/response_distill.jsonl").write_text(
-        "{\"instruction\": \"x\"}\n",
+    (tmp_path / "runs/test/checkpoints/final").mkdir(parents=True)
+    (tmp_path / "runs/test/checkpoints/final/config.json").write_text(
+        "{\"model_type\": \"test\"}\n",
         encoding="utf-8",
     )
 
@@ -103,9 +113,9 @@ artifact:
   bundle_path: artifacts/test-run.tar.gz
   delete_remote_extra: true
   required:
-    - data/distill/response_distill.jsonl
+    - runs/test/checkpoints/final/config.json
   include:
-    - data/distill/*.jsonl
+    - runs/test/checkpoints/final/*
 ''',
         encoding="utf-8",
     )
@@ -118,16 +128,16 @@ artifact:
     assert manifest_path.exists()
 
     loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert loaded["files"][0]["path"] == "data/distill/response_distill.jsonl"
+    assert loaded["files"][0]["path"] == "runs/test/checkpoints/final/config.json"
 
     verify_result = verify_manifest(manifest_path, root=tmp_path)
     assert verify_result.file_count == 1
 
 
 def test_pack_and_unpack_artifacts(tmp_path: Path) -> None:
-    (tmp_path / "data/preference").mkdir(parents=True)
-    (tmp_path / "data/preference/dpo_pairs.jsonl").write_text(
-        "{\"prompt\": \"x\"}\n",
+    (tmp_path / "runs/test/checkpoints/final").mkdir(parents=True)
+    (tmp_path / "runs/test/checkpoints/final/config.json").write_text(
+        "{\"model_type\": \"test\"}\n",
         encoding="utf-8",
     )
 
@@ -143,9 +153,9 @@ artifact:
   bundle_path: artifacts/test-run.tar.gz
   delete_remote_extra: true
   required:
-    - data/preference/dpo_pairs.jsonl
+    - runs/test/checkpoints/final/config.json
   include:
-    - data/preference/*.jsonl
+    - runs/test/checkpoints/final/*
 ''',
         encoding="utf-8",
     )
@@ -156,4 +166,4 @@ artifact:
     assert bundle_path is not None
     unpack_artifacts(bundle_path, target_dir=target)
 
-    assert (target / "test-run/data/preference/dpo_pairs.jsonl").exists()
+    assert (target / "test-run/runs/test/checkpoints/final/config.json").exists()

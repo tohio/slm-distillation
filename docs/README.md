@@ -1,12 +1,9 @@
-# Docs
+# Documentation
 
-Design documentation for SLM distillation workflows.
-
-## Files
+Design documentation for local model distillation workflows.
 
 | File | Purpose |
 |---|---|
-| `teacher_policy.md` | Teacher model license and usage policy. |
-| `response_distillation.md` | Response-distillation design. |
-| `logit_distillation.md` | Logit-distillation design. |
-| `cost_tracking.md` | Token and cost accounting notes. |
+| `logit_distillation.md` | Logit-distillation requirements and compatibility gate |
+
+The root README defines repository scope and the response/DPO workflow.

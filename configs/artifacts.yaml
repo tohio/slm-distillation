@@ -7,11 +7,9 @@ artifact:
   bundle_path: artifacts/slm-125m-deepseek-distilled.tar.gz
   delete_remote_extra: true
   required:
-    - data/distill/response_distill.jsonl
-    - data/preference/dpo_pairs.jsonl
+    - runs/slm-125m-deepseek-distilled/dpo/checkpoints/final/config.json
   include:
-    - data/raw_teacher/*.jsonl
-    - data/validated/*.jsonl
-    - data/rejected/*.jsonl
-    - data/distill/*.jsonl
-    - data/preference/*.jsonl
+    - runs/slm-125m-deepseek-distilled/response_distill/checkpoints/final/*
+    - runs/slm-125m-deepseek-distilled/dpo/checkpoints/final/*
+    - runs/slm-125m-deepseek-distilled/eval/*
+    - runs/slm-125m-deepseek-distilled/model_card.md
