@@ -8,12 +8,16 @@ PYTHON := python3
 PYTHONPATH := .
 RESPONSE_CONFIG ?= configs/response_distill.yaml
 RESPONSE_DATA_LIMIT ?= 100
+RESPONSE_MAX_STEPS ?=
+RESPONSE_MAX_TRAIN_SAMPLES ?=
+RESPONSE_RESUME_FROM_CHECKPOINT ?=
+RESPONSE_LAUNCH ?= $(PYTHON)
 DPO_CONFIG ?= configs/dpo.yaml
 LOGIT_CONFIG ?= configs/logit_distill.yaml
 EXPORT_CONFIG ?= configs/export.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
 
-.PHONY: help install test test-unit verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts validate-response-inputs train-response-dry-run train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run
+.PHONY: help install test test-unit verify-artifacts pack-artifacts unpack-artifacts push-artifacts pull-artifacts validate-response-inputs train-response train-response-dry-run train-logit train-logit-dry-run train-dpo train-dpo-dry-run export export-dry-run
 
 help:
 > @echo ""
@@ -25,6 +29,7 @@ help:
 > @echo ""
 > @echo "Training:"
 > @echo "  validate-response-inputs Validate the response model and dataset"
+> @echo "  train-response          Train the response-distillation stage"
 > @echo "  train-response-dry-run  Print the resolved response plan"
 > @echo "  train-dpo               Train the DPO stage"
 > @echo "  train-dpo-dry-run       Print the resolved DPO plan"
@@ -66,6 +71,13 @@ train-response-dry-run:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_response_distill.py \
 >   --config $(RESPONSE_CONFIG) \
 >   --dry-run
+
+train-response:
+> PYTHONPATH=$(PYTHONPATH) $(RESPONSE_LAUNCH) scripts/train_response_distill.py \
+>   --config $(RESPONSE_CONFIG) \
+>   $(if $(RESPONSE_MAX_STEPS),--max-steps $(RESPONSE_MAX_STEPS)) \
+>   $(if $(RESPONSE_MAX_TRAIN_SAMPLES),--max-train-samples $(RESPONSE_MAX_TRAIN_SAMPLES)) \
+>   $(if $(RESPONSE_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(RESPONSE_RESUME_FROM_CHECKPOINT))
 
 verify-artifacts:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/verify_artifacts.py \

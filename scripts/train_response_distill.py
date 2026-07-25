@@ -37,6 +37,23 @@ def parse_args() -> argparse.Namespace:
         default=100,
         help="Number of dataset rows to inspect with --validate-inputs.",
     )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Override training.max_steps for a bounded smoke run.",
+    )
+    parser.add_argument(
+        "--max-train-samples",
+        type=int,
+        default=None,
+        help="Override training.max_train_samples.",
+    )
+    parser.add_argument(
+        "--resume-from-checkpoint",
+        default=None,
+        help="Trainer checkpoint directory to resume.",
+    )
     return parser.parse_args()
 
 
@@ -56,7 +73,13 @@ def main() -> None:
         print(json.dumps(asdict(result), indent=2, sort_keys=True))
         return
 
-    train_response_distill(args.config)
+    result = train_response_distill(
+        args.config,
+        max_steps=args.max_steps,
+        max_train_samples=args.max_train_samples,
+        resume_from_checkpoint=args.resume_from_checkpoint,
+    )
+    print(json.dumps(asdict(result), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

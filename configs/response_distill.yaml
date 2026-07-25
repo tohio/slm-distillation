@@ -12,6 +12,30 @@ data:
   response_field: response
   metadata_field: metadata
 
+formatting:
+  mode: chat
+  system_prompt: null
+
+training:
+  max_length: 1024
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 0.00002
+  num_train_epochs: 3
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  lr_scheduler_type: cosine
+  logging_steps: 10
+  save_steps: 250
+  save_total_limit: 2
+  bf16: true
+  gradient_checkpointing: true
+  dataloader_num_workers: 4
+  seed: 42
+  max_steps: null
+  max_train_samples: null
+
 output:
   model_name: smollm2-135m-deepseek-distilled
   run_dir: runs/smollm2-135m-deepseek-distilled/response_distill

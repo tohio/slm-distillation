@@ -104,7 +104,11 @@ def convert_response_row(
     )
 
 
-def _load_dataset(config: ResponseDataConfig, loader: DatasetLoader | None) -> Any:
+def load_response_dataset(
+    config: ResponseDataConfig,
+    *,
+    loader: DatasetLoader | None = None,
+) -> Any:
     if loader is None:
         from datasets import load_dataset
 
@@ -120,16 +124,15 @@ def _load_dataset(config: ResponseDataConfig, loader: DatasetLoader | None) -> A
     return loader(**kwargs)
 
 
-def inspect_response_dataset(
+def validate_response_dataset(
+    dataset: Any,
     config: ResponseDataConfig,
     *,
     limit: int | None = None,
-    loader: DatasetLoader | None = None,
 ) -> ResponseDatasetSummary:
     if limit is not None and limit <= 0:
         raise ValueError("Response dataset inspection limit must be positive")
 
-    dataset = _load_dataset(config, loader)
     column_names = list(dataset.column_names)
     _validate_columns(column_names, config)
 
@@ -158,3 +161,13 @@ def inspect_response_dataset(
         column_names=sorted(column_names),
         unique_ids=len(unique_ids),
     )
+
+
+def inspect_response_dataset(
+    config: ResponseDataConfig,
+    *,
+    limit: int | None = None,
+    loader: DatasetLoader | None = None,
+) -> ResponseDatasetSummary:
+    dataset = load_response_dataset(config, loader=loader)
+    return validate_response_dataset(dataset, config, limit=limit)

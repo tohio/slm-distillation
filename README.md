@@ -89,6 +89,15 @@ The input validator:
 - converts rows to `id`, `prompt`, `response`, and `metadata`;
 - rejects empty text and duplicate IDs.
 
+The response trainer:
+
+- formats records with the tokenizer chat template or plain text;
+- masks prompt tokens so loss is computed only on teacher responses;
+- truncates long records while preserving supervised response tokens;
+- uses dynamic padding;
+- supports bounded smoke runs and checkpoint resume;
+- saves the model and tokenizer to the configured final checkpoint.
+
 Response distillation permits unrelated teacher and student tokenizers because
 the student tokenizes saved text. Logit distillation requires tokenizer
 compatibility.
@@ -124,7 +133,7 @@ Excluded:
 | Artifact handoff | Implemented |
 | Tokenizer compatibility gate | Implemented |
 | Model-card generation | Implemented |
-| Response trainer | Not implemented |
+| Response trainer | Implemented |
 | DPO trainer | Configuration and dry-run plan only |
 | Logit trainer | Configuration and compatibility plan only |
 | Evaluation | Not implemented |
@@ -155,20 +164,35 @@ make test
 
 make train-response-dry-run
 make validate-response-inputs RESPONSE_DATA_LIMIT=100
+make train-response RESPONSE_MAX_STEPS=5 RESPONSE_MAX_TRAIN_SAMPLES=64
 make train-dpo-dry-run
 make train-logit-dry-run
 make export-dry-run
 ```
 
-Training targets raise a clear `NotImplementedError` until their trainer is
-implemented. Dry-run targets validate and print resolved configuration without
-starting training.
+Run the full configured response stage with:
+
+```bash
+make train-response
+```
+
+For multi-GPU execution, provide an Accelerate launcher:
+
+```bash
+make train-response \
+  RESPONSE_LAUNCH="accelerate launch --multi_gpu --num_processes 2"
+```
+
+The default response config targets SmolLM2-135M with bfloat16. When swapping
+to a larger model such as SmolLM2-1.7B, reduce the per-device batch size and
+increase gradient accumulation as needed to retain the intended effective
+batch size. Update the model name and all output paths together.
 
 ## Configuration
 
 | File | Purpose |
 |---|---|
-| `configs/response_distill.yaml` | Response student, dataset schema, and outputs |
+| `configs/response_distill.yaml` | Response student, formatting, training, dataset schema, and outputs |
 | `configs/dpo.yaml` | DPO source model, published dataset, training, and outputs |
 | `configs/logit_distill.yaml` | Local teacher/student and logit-distillation settings |
 | `configs/eval.yaml` | Evaluation settings |
@@ -182,8 +206,9 @@ make test
 ```
 
 The test suite covers response configuration, model resolution, dataset schema
-conversion, DPO and logit configuration, tokenizer compatibility, artifact
-handoff, model-card generation, and export planning.
+conversion, response-only loss masking, sequence truncation, DPO and logit
+configuration, tokenizer compatibility, artifact handoff, model-card
+generation, and export planning.
 
 ## Related Projects
 

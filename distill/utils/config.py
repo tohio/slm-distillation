@@ -26,6 +26,34 @@ class ResponseDataConfig:
 
 
 @dataclass(frozen=True)
+class ResponseFormattingConfig:
+    mode: str
+    system_prompt: str | None
+
+
+@dataclass(frozen=True)
+class ResponseTrainingConfig:
+    max_length: int
+    per_device_train_batch_size: int
+    gradient_accumulation_steps: int
+    learning_rate: float
+    num_train_epochs: float
+    warmup_ratio: float
+    weight_decay: float
+    max_grad_norm: float
+    lr_scheduler_type: str
+    logging_steps: int
+    save_steps: int
+    save_total_limit: int
+    bf16: bool
+    gradient_checkpointing: bool
+    dataloader_num_workers: int
+    seed: int
+    max_steps: int | None
+    max_train_samples: int | None
+
+
+@dataclass(frozen=True)
 class ResponseOutputConfig:
     model_name: str
     run_dir: str
@@ -37,6 +65,8 @@ class ResponseOutputConfig:
 class ResponseDistillConfig:
     model: ResponseModelConfig
     data: ResponseDataConfig
+    formatting: ResponseFormattingConfig
+    training: ResponseTrainingConfig
     output: ResponseOutputConfig
 
 
@@ -233,11 +263,99 @@ def _optional_str(data: dict[str, Any], key: str) -> str | None:
     return value
 
 
+def _optional_int(data: dict[str, Any], key: str) -> int | None:
+    value = data.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, int):
+        raise ValueError(f"config optional field '{key}' must be an integer")
+    return value
+
+
 def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
     data = load_yaml(path)
     model = _require_mapping(data, "model")
     data_cfg = _require_mapping(data, "data")
+    formatting = _require_mapping(data, "formatting")
+    training = _require_mapping(data, "training")
     output = _require_mapping(data, "output")
+
+    formatting_mode = _require_str(formatting, "mode")
+    if formatting_mode not in {"chat", "plain"}:
+        raise ValueError("response formatting.mode must be 'chat' or 'plain'")
+
+    training_config = ResponseTrainingConfig(
+        max_length=_require_int(training, "max_length"),
+        per_device_train_batch_size=_require_int(
+            training, "per_device_train_batch_size"
+        ),
+        gradient_accumulation_steps=_require_int(
+            training, "gradient_accumulation_steps"
+        ),
+        learning_rate=_require_float_or_int(training, "learning_rate"),
+        num_train_epochs=_require_float_or_int(training, "num_train_epochs"),
+        warmup_ratio=_require_float_or_int(training, "warmup_ratio"),
+        weight_decay=_require_float_or_int(training, "weight_decay"),
+        max_grad_norm=_require_float_or_int(training, "max_grad_norm"),
+        lr_scheduler_type=_require_str(training, "lr_scheduler_type"),
+        logging_steps=_require_int(training, "logging_steps"),
+        save_steps=_require_int(training, "save_steps"),
+        save_total_limit=_require_int(training, "save_total_limit"),
+        bf16=_require_bool(training, "bf16"),
+        gradient_checkpointing=_require_bool(
+            training, "gradient_checkpointing"
+        ),
+        dataloader_num_workers=_require_int(training, "dataloader_num_workers"),
+        seed=_require_int(training, "seed"),
+        max_steps=_optional_int(training, "max_steps"),
+        max_train_samples=_optional_int(training, "max_train_samples"),
+    )
+    positive_ints = {
+        "max_length": training_config.max_length,
+        "per_device_train_batch_size": (
+            training_config.per_device_train_batch_size
+        ),
+        "gradient_accumulation_steps": (
+            training_config.gradient_accumulation_steps
+        ),
+        "logging_steps": training_config.logging_steps,
+        "save_steps": training_config.save_steps,
+        "save_total_limit": training_config.save_total_limit,
+    }
+    for field, value in positive_ints.items():
+        if value <= 0:
+            raise ValueError(f"response training.{field} must be positive")
+    if training_config.dataloader_num_workers < 0:
+        raise ValueError(
+            "response training.dataloader_num_workers must be non-negative"
+        )
+    if training_config.learning_rate <= 0:
+        raise ValueError("response training.learning_rate must be positive")
+    if training_config.num_train_epochs <= 0:
+        raise ValueError("response training.num_train_epochs must be positive")
+    if not 0 <= training_config.warmup_ratio < 1:
+        raise ValueError(
+            "response training.warmup_ratio must be greater than or equal to "
+            "zero and less than one"
+        )
+    if training_config.weight_decay < 0:
+        raise ValueError(
+            "response training.weight_decay must be greater than or equal to zero"
+        )
+    if training_config.max_grad_norm <= 0:
+        raise ValueError("response training.max_grad_norm must be positive")
+    if (
+        training_config.max_steps is not None
+        and training_config.max_steps <= 0
+    ):
+        raise ValueError("response training.max_steps must be positive when set")
+    if (
+        training_config.max_train_samples is not None
+        and training_config.max_train_samples <= 0
+    ):
+        raise ValueError(
+            "response training.max_train_samples must be positive when set"
+        )
 
     return ResponseDistillConfig(
         model=ResponseModelConfig(
@@ -254,6 +372,11 @@ def load_response_distill_config(path: str | Path) -> ResponseDistillConfig:
             response_field=_require_str(data_cfg, "response_field"),
             metadata_field=_optional_str(data_cfg, "metadata_field"),
         ),
+        formatting=ResponseFormattingConfig(
+            mode=formatting_mode,
+            system_prompt=_optional_str(formatting, "system_prompt"),
+        ),
+        training=training_config,
         output=ResponseOutputConfig(
             model_name=_require_str(output, "model_name"),
             run_dir=_require_str(output, "run_dir"),

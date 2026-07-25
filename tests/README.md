@@ -8,9 +8,10 @@ make test
 
 Coverage includes:
 
-- response model and dataset configuration
+- response model, dataset, formatting, and training configuration
 - local and Hugging Face model reference resolution
 - response-dataset schema conversion and validation
+- response-only label masking and sequence truncation
 - DPO, logit, and export configuration
 - tokenizer compatibility
 - model-card generation and export planning

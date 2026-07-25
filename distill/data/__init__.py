@@ -3,6 +3,8 @@ from distill.data.response import (
     ResponseDatasetSummary,
     convert_response_row,
     inspect_response_dataset,
+    load_response_dataset,
+    validate_response_dataset,
 )
 
 __all__ = [
@@ -10,4 +12,6 @@ __all__ = [
     "ResponseDatasetSummary",
     "convert_response_row",
     "inspect_response_dataset",
+    "load_response_dataset",
+    "validate_response_dataset",
 ]

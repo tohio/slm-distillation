@@ -16,4 +16,5 @@ Command-line entry points for training, evaluation, export, and artifacts.
 | `pull_artifacts.py` | Pull model artifacts from S3 |
 
 Response input validation resolves the configured Hugging Face model and
-inspects the selected dataset rows without starting training.
+inspects the selected dataset rows without starting training. Response training
+supports bounded sample/step overrides and checkpoint resume.

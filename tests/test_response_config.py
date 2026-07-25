@@ -19,6 +19,11 @@ def test_load_response_distill_config_reads_default_file() -> None:
     assert config.data.dataset_split == "train"
     assert config.data.prompt_field == "prompt"
     assert config.data.response_field == "response"
+    assert config.formatting.mode == "chat"
+    assert config.training.max_length == 1024
+    assert config.training.per_device_train_batch_size == 8
+    assert config.training.gradient_accumulation_steps == 4
+    assert config.training.max_steps is None
 
 
 def test_build_response_training_plan() -> None:
@@ -29,6 +34,9 @@ def test_build_response_training_plan() -> None:
     assert plan.tokenizer_name_or_path == config.model.tokenizer_name_or_path
     assert plan.dataset_id == config.data.dataset_id
     assert plan.dataset_split == config.data.dataset_split
+    assert plan.formatting_mode == "chat"
+    assert plan.max_length == 1024
+    assert plan.learning_rate == pytest.approx(0.00002)
     assert plan.final_checkpoint_dir == config.output.final_checkpoint_dir
 
 
@@ -48,6 +56,28 @@ data:
   id_field: id
   prompt_field: prompt
   metadata_field: metadata
+formatting:
+  mode: chat
+  system_prompt: null
+training:
+  max_length: 1024
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 0.00002
+  num_train_epochs: 3
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  lr_scheduler_type: cosine
+  logging_steps: 10
+  save_steps: 250
+  save_total_limit: 2
+  bf16: true
+  gradient_checkpointing: true
+  dataloader_num_workers: 4
+  seed: 42
+  max_steps: null
+  max_train_samples: null
 output:
   model_name: example
   run_dir: runs/example
@@ -58,4 +88,20 @@ output:
     )
 
     with pytest.raises(ValueError, match="response_field"):
+        load_response_distill_config(config_path)
+
+
+def test_load_response_distill_config_rejects_unknown_formatting_mode(
+    tmp_path: Path,
+) -> None:
+    config_text = Path("configs/response_distill.yaml").read_text(
+        encoding="utf-8"
+    )
+    config_path = tmp_path / "response.yaml"
+    config_path.write_text(
+        config_text.replace("mode: chat", "mode: unsupported"),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="formatting.mode"):
         load_response_distill_config(config_path)
