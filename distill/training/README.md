@@ -1,25 +1,57 @@
 # Training
 
-Student post-training stages.
+## Purpose
 
-| File | Input | Output | Status |
-|---|---|---|---|
-| `train_response_distill.py` | Published response dataset | Response-distilled checkpoint | Implemented |
-| `train_dpo.py` | Published preference dataset | DPO-aligned checkpoint | Implemented |
-| `train_logit_distill.py` | Local teacher and student | Logit-distilled checkpoint | Implemented |
+`distill/training` owns response distillation, local logit distillation, and
+DPO training. It does not own CLI parsing, evaluation, export, or dataset
+generation.
 
-Response and DPO datasets are loaded from Hugging Face. Logit distillation
-uses response records for hard-label loss while matching the teacher
-distribution on supervised response tokens.
+## Contents
 
-Response training applies causal language-model loss only to teacher-response
-tokens. Prompt tokens and padding tokens use the `-100` ignore index.
+~~~text
+training/
+├── train_response_distill.py
+├── train_logit_distill.py
+└── train_dpo.py
+~~~
 
-DPO training uses TRL's DPO trainer with the response-distilled checkpoint as
-the initial policy and reference policy. It accepts standard or conversational
-preference datasets.
+## Key Files
 
-Logit training freezes the local teacher, trains the full student, combines
-causal cross-entropy and temperature-scaled KL divergence, and saves the final
-model and tokenizer. It requires matching tokenizers and exactly one supported
-GPU.
+| File | Input | Output |
+|---|---|---|
+| `train_response_distill.py` | Published response rows and a student model | Response-distilled checkpoint |
+| `train_logit_distill.py` | Local teacher/student plus published response rows | Logit-distilled checkpoint |
+| `train_dpo.py` | Branch-specific distilled checkpoint and preference rows | DPO-aligned checkpoint |
+
+Each module exposes a side-effect-free plan builder, an input validator, data
+preparation, and the training operation.
+
+## How It Fits In
+
+Response and logit training create independent branch checkpoints. Matching
+DPO configs consume those checkpoints before evaluation and export.
+
+## Usage/API
+
+~~~bash
+make train-response-dry-run
+make train-logit-dry-run
+make train-dpo-dry-run
+make train-dpo-logit-dry-run
+~~~
+
+Use [the training guide](../../docs/training.md) for complete smoke and
+production sequences.
+
+## Conventions
+
+- Compute causal loss only on supervised response tokens.
+- Save model and tokenizer together in each final checkpoint.
+- Keep smoke and full outputs in separate roots.
+- Treat configured final checkpoint paths as downstream contracts.
+- Support bounded steps/samples and resume where the trainer exposes them.
+
+## Gotchas
+
+DPO validation requires its upstream final checkpoint to exist. Logit training
+requires matching tokenizers and exactly one visible supported CUDA GPU.

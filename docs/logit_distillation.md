@@ -1,57 +1,78 @@
 # Logit Distillation
 
-Local logit distillation trains a student model against teacher token
-distributions. The default pairing is SmolLM2-1.7B-Instruct as the frozen
-teacher and SmolLM2-135M-Instruct as the trainable student.
+Objective, tokenizer compatibility gate, and hardware contract for local
+teacher-to-student distillation.
 
-## Requirements
+## Default Pairing
 
-| Requirement | Description |
+| Role | Model |
 |---|---|
-| Local teacher | Teacher model must run locally. |
-| Full logits | Training requires teacher logits from the forward pass. |
-| Tokenizer compatibility | Teacher and student must use the same tokenizer and vocabulary. |
-| Single GPU | Teacher model must fit on one supported GPU. |
+| Frozen teacher | `HuggingFaceTB/SmolLM2-1.7B-Instruct` |
+| Trainable student | `HuggingFaceTB/SmolLM2-135M-Instruct` |
+| Training data | `tohio/slm-synthetic-distillation-sft` |
 
-## Supported GPU Classes
-
-    B300
-    B200
-    H200
-    A100
-
-## Tokenizer Gate
-
-The logit-distillation stage checks tokenizer compatibility before training.
-
-The gate verifies:
-
-- vocabulary equality
-- token ID equality
-- special token equality
-
-Response distillation does not require tokenizer compatibility because teacher text is retokenized for the student.
+The teacher is loaded locally for forward passes. No hosted inference provider
+or OpenRouter dependency is used by this branch.
 
 ## Objective
 
-The trainer computes loss only on response tokens:
+Loss is computed only on supervised response tokens:
 
-```text
+~~~text
 loss = alpha * hard_cross_entropy
      + (1 - alpha) * temperature² * teacher_student_KL
-```
+~~~
 
-`alpha: 1` is ordinary supervised fine-tuning; `alpha: 0` is pure logit
-matching. The default is `0.5`.
+`alpha: 1` is ordinary supervised fine-tuning, `alpha: 0` is pure logit
+matching, and the default is `0.5`. The default temperature is `2.0`.
 
-## Execution
+## Tokenizer Gate
 
-```bash
+Teacher and student must have:
+
+- identical vocabularies;
+- identical token IDs;
+- identical special-token mappings.
+
+Logit comparison is token-aligned, so compatibility is a hard requirement.
+Response distillation does not share this restriction because saved teacher
+text is tokenized only by the student.
+
+## Hardware Contract
+
+The current implementation requires exactly one visible CUDA GPU and accepts
+these configured GPU classes:
+
+- B300
+- B200
+- H200
+- A100
+
+Teacher and student are colocated on that device. The teacher is frozen and
+loaded in bfloat16; gradient checkpointing applies to the student.
+
+## Validation and Execution
+
+~~~bash
 make validate-logit-inputs LOGIT_DATA_LIMIT=100
-make train-logit-smoke
-make train-logit
-```
+CUDA_VISIBLE_DEVICES=0 make train-logit-smoke
+CUDA_VISIBLE_DEVICES=0 make train-logit
+~~~
 
-The smoke configuration writes under `runs/smoke/`; the full configuration
-writes under `runs/`. The trainer fails early unless CUDA exposes exactly one
-supported GPU.
+The validator resolves both model references, compares tokenizers, and
+inspects the configured response dataset before model weights are trained.
+Smoke outputs go to `runs/smoke/`; full outputs go to `runs/`.
+
+## Swapping the Teacher or Student
+
+Update all teacher/student model, tokenizer, and revision fields in the
+matching logit config. Run the input validator before any smoke or full run.
+If tokenizer compatibility fails, use response distillation or choose a
+tokenizer-compatible pair.
+
+## See Also
+
+- [Architecture](architecture.md)
+- [Training](training.md)
+- [Configuration](configuration.md)
+- [Evaluation and Export](evaluation-and-export.md)

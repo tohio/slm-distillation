@@ -1,25 +1,64 @@
 # Scripts
 
-Command-line entry points for training, evaluation, export, and artifacts.
+## Purpose
 
-| Script | Purpose |
+`scripts` owns CLI argument parsing and translation into `distill` package
+operations. It does not contain core training, evaluation, export, or artifact
+logic.
+
+## Contents
+
+~~~text
+scripts/
+├── train_response_distill.py
+├── train_logit_distill.py
+├── train_dpo.py
+├── run_eval.py
+├── export_model.py
+├── pack_artifacts.py
+├── verify_artifacts.py
+├── unpack_artifacts.py
+├── push_artifacts.py
+└── pull_artifacts.py
+~~~
+
+## Key Files
+
+| Script | Modes |
 |---|---|
-| `train_response_distill.py` | Inspect response config, validate inputs, or start response training |
-| `train_dpo.py` | Train or inspect the DPO stage |
-| `train_logit_distill.py` | Train or inspect local logit distillation |
-| `run_eval.py` | Evaluate base and distilled checkpoints |
-| `export_model.py` | Generate the model card and export the final checkpoint |
-| `pack_artifacts.py` | Package model run artifacts |
-| `verify_artifacts.py` | Verify artifact checksums |
-| `unpack_artifacts.py` | Unpack a model artifact bundle |
-| `push_artifacts.py` | Push model artifacts to S3 |
-| `pull_artifacts.py` | Pull model artifacts from S3 |
+| `train_response_distill.py` | dry-run, validate inputs, train, bound, resume |
+| `train_logit_distill.py` | dry-run, validate inputs, train, bound, resume |
+| `train_dpo.py` | dry-run, validate inputs, train, bound, resume |
+| `run_eval.py` | dry-run, validate inputs, evaluate with optional limit |
+| `export_model.py` | dry-run, local export, explicit Hugging Face push |
+| Artifact scripts | pack, verify, unpack, push, and pull |
 
-Response and DPO input validation resolve their configured checkpoints and
-inspect selected dataset rows without starting training. Both trainers support
-bounded sample/step overrides and checkpoint resume.
+## How It Fits In
 
-Logit validation additionally resolves both models and compares their complete
-tokenizer vocabularies and special-token maps. Evaluation validates both
-response and preference datasets. Export uses `--push-to-hub` for an explicit
-Hugging Face upload.
+The Makefile is the supported operator interface and invokes these scripts with
+the correct branch config and runtime overrides.
+
+## Usage/API
+
+~~~bash
+python3 scripts/train_response_distill.py --help
+python3 scripts/train_logit_distill.py --help
+python3 scripts/train_dpo.py --help
+python3 scripts/run_eval.py --help
+python3 scripts/export_model.py --help
+~~~
+
+Use [`COMMAND.md`](../COMMAND.md) for Make targets and variables.
+
+## Conventions
+
+- Keep defaults aligned with the response full configs.
+- Keep `--dry-run` side-effect free.
+- Keep `--validate-inputs` separate from training.
+- Print structured JSON for plans, validation, and evaluation results.
+- Require an explicit `--push-to-hub` for CLI-triggered Hub mutation.
+
+## Gotchas
+
+Downstream validation fails until its upstream final checkpoint exists. Direct
+script use must set `PYTHONPATH=.` when the package is not installed.

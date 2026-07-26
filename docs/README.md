@@ -1,9 +1,10 @@
 # Documentation
 
-Design documentation for local model distillation workflows.
+Detailed design and workflow documentation for SLM Distillation.
 
-| File | Purpose |
-|---|---|
-| `logit_distillation.md` | Logit-distillation requirements and compatibility gate |
-
-The root README defines repository scope and the response/DPO workflow.
+- [Architecture](architecture.md) — system boundaries, branches, and checkpoint flow
+- [Training](training.md) — complete response and logit training workflows
+- [Configuration](configuration.md) — config inventory, contracts, and model swapping
+- [Evaluation and Export](evaluation-and-export.md) — metrics, outputs, Hub export, and artifacts
+- [Logit Distillation](logit_distillation.md) — objective, tokenizer gate, and hardware rules
+- [Command Reference](../COMMAND.md) — supported Make targets and variables
