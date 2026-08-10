@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from distill.utils.config import DpoDataConfig
+from distill.utils.env import get_env_value
 
 
 PreferenceValue = str | list[dict[str, str]]
@@ -194,6 +195,9 @@ def load_preference_dataset(
     }
     if config.dataset_config_name is not None:
         kwargs["name"] = config.dataset_config_name
+    token = get_env_value("HF_TOKEN", fallback_to_os=True)
+    if token is not None:
+        kwargs["token"] = token
 
     return loader(**kwargs)
 

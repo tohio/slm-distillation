@@ -50,10 +50,19 @@ Requirements:
 ~~~bash
 git clone https://github.com/tohio/slm-distillation.git
 cd slm-distillation
+
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+
 cp .env.sample .env
 make install
 make test
 ~~~
+
+Add your Hugging Face token to `.env` before accessing Hub resources. The
+`make install` target installs all packages declared in `requirements.txt`
+inside the active virtual environment.
 
 Validate and smoke-test the response branch:
 

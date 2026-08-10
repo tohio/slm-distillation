@@ -83,6 +83,35 @@ def test_inspect_response_dataset_validates_and_summarizes_rows() -> None:
     assert summary.column_names == ["id", "metadata", "prompt", "response"]
 
 
+def test_inspect_response_dataset_passes_hf_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = FakeDataset(
+        [
+            {
+                "id": "one",
+                "prompt": "Question",
+                "response": "Answer",
+                "metadata": {},
+            }
+        ]
+    )
+    calls: list[dict[str, Any]] = []
+
+    monkeypatch.setattr(
+        "distill.data.response.get_env_value",
+        lambda *args, **kwargs: "test-token",
+    )
+
+    def load_dataset(**kwargs: Any) -> FakeDataset:
+        calls.append(kwargs)
+        return dataset
+
+    inspect_response_dataset(response_config(), loader=load_dataset)
+
+    assert calls[0]["token"] == "test-token"
+
+
 def test_inspect_response_dataset_rejects_missing_configured_column() -> None:
     dataset = FakeDataset(
         [{"id": "one", "prompt": "Question", "response": "Answer"}]

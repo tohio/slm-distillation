@@ -6,10 +6,18 @@ and production handoffs.
 ## Prerequisites
 
 ~~~bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+
 cp .env.sample .env
 make install
 make test
 ~~~
+
+Add your Hugging Face token to `.env` before accessing Hub resources. The
+`make install` target installs all packages declared in `requirements.txt`
+inside the active virtual environment.
 
 `HF_TOKEN` is optional for public inputs but recommended for Hub rate limits;
 it is required for private inputs and model uploads. Logit training requires

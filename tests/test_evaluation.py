@@ -8,6 +8,7 @@ import pytest
 
 from distill.eval.compare_outputs import normalize_text, score_predictions
 from distill.eval.run_eval import (
+    _load_eval_dataset,
     build_evaluation_plan,
     run_evaluation,
 )
@@ -61,6 +62,29 @@ def test_logit_eval_config_uses_logit_branch_checkpoints() -> None:
     assert config.models[-1].model_name_or_path == (
         "runs/smollm2-135m-logit-distilled/dpo/checkpoints/final"
     )
+
+
+def test_load_eval_dataset_passes_hf_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = load_eval_config("configs/eval.yaml")
+    dataset = FakeDataset(
+        [{"id": "one", "prompt": "Question", "response": "Answer"}]
+    )
+    calls: list[dict[str, Any]] = []
+
+    monkeypatch.setattr(
+        "distill.eval.run_eval.get_env_value",
+        lambda *args, **kwargs: "test-token",
+    )
+
+    def load_dataset(**kwargs: Any) -> FakeDataset:
+        calls.append(kwargs)
+        return dataset
+
+    _load_eval_dataset(config, loader=load_dataset)
+
+    assert calls[0]["token"] == "test-token"
 
 
 def test_score_predictions_reports_exact_and_normalized_metrics() -> None:

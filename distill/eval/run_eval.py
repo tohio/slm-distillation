@@ -121,6 +121,9 @@ def _load_eval_dataset(config: EvalConfig, loader: Any = None) -> Any:
     }
     if config.data.dataset_config_name is not None:
         kwargs["name"] = config.data.dataset_config_name
+    token = get_env_value("HF_TOKEN", fallback_to_os=True)
+    if token is not None:
+        kwargs["token"] = token
     return loader(**kwargs)
 
 

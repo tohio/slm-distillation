@@ -6,6 +6,7 @@ import pytest
 
 from distill.data.preference import (
     convert_preference_row,
+    load_preference_dataset,
     validate_preference_dataset,
 )
 from distill.utils.config import DpoDataConfig
@@ -103,6 +104,26 @@ def test_validate_preference_dataset_accepts_conversational_rows() -> None:
         "prompt",
         "rejected",
     ]
+
+
+def test_load_preference_dataset_passes_hf_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = FakeDataset([conversational_row()])
+    calls: list[dict[str, Any]] = []
+
+    monkeypatch.setattr(
+        "distill.data.preference.get_env_value",
+        lambda *args, **kwargs: "test-token",
+    )
+
+    def load_dataset(**kwargs: Any) -> FakeDataset:
+        calls.append(kwargs)
+        return dataset
+
+    load_preference_dataset(preference_config(), loader=load_dataset)
+
+    assert calls[0]["token"] == "test-token"
 
 
 def test_validate_preference_dataset_rejects_identical_pair() -> None:
