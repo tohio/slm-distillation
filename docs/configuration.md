@@ -78,6 +78,13 @@ Response validation rejects missing fields, empty prompt/response text, and
 duplicate IDs. Preference validation additionally rejects mixed row formats
 and identical chosen/rejected responses.
 
+The response-branch model identity describes the distillation method, so a
+dataset swap does not require renaming `smollm2-135m-response-distilled`.
+Update `model_card.response_dataset` in `configs/export.yaml` to preserve
+dataset provenance. If the replacement response dataset uses a different
+teacher, also update `model_card.teacher_model`. Provider provenance belongs
+to the published dataset and is not duplicated in exported model metadata.
+
 The default evaluation configs sample published training splits for pipeline
 validation. Point both evaluation datasets at independent held-out data before
 making final quality claims.

@@ -18,17 +18,17 @@ from distill.artifacts.handoff import (
 def test_load_artifact_config_reads_default_file() -> None:
     config = load_artifact_config("configs/artifacts.yaml")
 
-    assert config.run_name == "smollm2-135m-deepseek-distilled"
+    assert config.run_name == "smollm2-135m-response-distilled"
     assert config.backend == "s3"
     assert config.s3_bucket_env == "S3_BUCKET"
     assert config.s3_prefix_env == "S3_PREFIX"
     assert config.delete_remote_extra is True
     assert (
-        "runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final/config.json"
+        "runs/smollm2-135m-response-distilled/dpo/checkpoints/final/config.json"
         in config.required
     )
     assert (
-        "runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final/*"
+        "runs/smollm2-135m-response-distilled/dpo/checkpoints/final/*"
         in config.include
     )
 
@@ -63,7 +63,7 @@ def test_resolve_s3_uri_from_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
     assert (
         uri
-        == "s3://test-bucket/distillation/smollm2-135m-deepseek-distilled/"
+        == "s3://test-bucket/distillation/smollm2-135m-response-distilled/"
     )
 
 

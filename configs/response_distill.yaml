@@ -37,7 +37,7 @@ training:
   max_train_samples: null
 
 output:
-  model_name: smollm2-135m-deepseek-distilled
-  run_dir: runs/smollm2-135m-deepseek-distilled/response_distill
-  checkpoint_dir: runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints
-  final_checkpoint_dir: runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
+  model_name: smollm2-135m-response-distilled
+  run_dir: runs/smollm2-135m-response-distilled/response_distill
+  checkpoint_dir: runs/smollm2-135m-response-distilled/response_distill/checkpoints
+  final_checkpoint_dir: runs/smollm2-135m-response-distilled/response_distill/checkpoints/final

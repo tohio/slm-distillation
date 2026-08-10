@@ -27,9 +27,9 @@ Evaluation writes one prediction JSONL file per model and a branch summary:
 
 | Branch | Result |
 |---|---|
-| Response | `runs/smollm2-135m-deepseek-distilled/eval/results.json` |
+| Response | `runs/smollm2-135m-response-distilled/eval/results.json` |
 | Logit | `runs/smollm2-135m-logit-distilled/eval/results.json` |
-| Response smoke | `runs/smoke/smollm2-135m-deepseek-distilled/eval/results.json` |
+| Response smoke | `runs/smoke/smollm2-135m-response-distilled/eval/results.json` |
 | Logit smoke | `runs/smoke/smollm2-135m-logit-distilled/eval/results.json` |
 
 The bundled evaluation configs sample the published training datasets to

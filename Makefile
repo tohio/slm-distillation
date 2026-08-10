@@ -133,7 +133,7 @@ train-response-smoke:
 
 verify-artifacts:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/verify_artifacts.py \
->   --manifest artifacts/smollm2-135m-deepseek-distilled/manifest.json
+>   --manifest artifacts/smollm2-135m-response-distilled/manifest.json
 
 verify-artifacts-logit:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/verify_artifacts.py \

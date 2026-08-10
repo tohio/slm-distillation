@@ -147,7 +147,6 @@ class ExportModelCardConfig:
     output_path: str
     source_checkpoint: str
     teacher_model: str
-    teacher_provider: str
     distillation_type: str
     dpo_applied: bool
     response_dataset: str
@@ -653,7 +652,6 @@ def load_export_config(path: str | Path) -> ExportConfig:
             output_path=_require_str(model_card, "output_path"),
             source_checkpoint=_require_str(model_card, "source_checkpoint"),
             teacher_model=_require_str(model_card, "teacher_model"),
-            teacher_provider=_require_str(model_card, "teacher_provider"),
             distillation_type=_require_str(model_card, "distillation_type"),
             dpo_applied=_require_bool(model_card, "dpo_applied"),
             response_dataset=_require_str(model_card, "response_dataset"),

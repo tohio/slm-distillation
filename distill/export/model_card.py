@@ -32,7 +32,6 @@ DPO-aligned distilled SLM model variant.
 |---|---|
 | Source checkpoint | `{config.model_card.source_checkpoint}` |
 | Teacher model | `{config.model_card.teacher_model}` |
-| Teacher provider | `{config.model_card.teacher_provider}` |
 | Distillation type | `{config.model_card.distillation_type}` |
 | DPO applied | `{config.model_card.dpo_applied}` |
 | Response dataset | `{config.model_card.response_dataset}` |

@@ -108,10 +108,10 @@ def test_run_evaluation_writes_predictions_and_comparisons(
     results_path = tmp_path / "results.json"
     predictions_dir = tmp_path / "predictions"
     config_text = config_text.replace(
-        "runs/smollm2-135m-deepseek-distilled/eval/results.json",
+        "runs/smollm2-135m-response-distilled/eval/results.json",
         str(results_path),
     ).replace(
-        "runs/smollm2-135m-deepseek-distilled/eval/predictions",
+        "runs/smollm2-135m-response-distilled/eval/predictions",
         str(predictions_dir),
     )
     config_path = tmp_path / "eval.yaml"

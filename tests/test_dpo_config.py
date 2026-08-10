@@ -14,9 +14,9 @@ from distill.utils.config import (
 def test_load_dpo_config_reads_default_file() -> None:
     config = load_dpo_config("configs/dpo.yaml")
 
-    assert config.source.model_name == "smollm2-135m-deepseek-distilled"
+    assert config.source.model_name == "smollm2-135m-response-distilled"
     assert config.source.checkpoint_path == (
-        "runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final"
+        "runs/smollm2-135m-response-distilled/response_distill/checkpoints/final"
     )
     assert config.source.tokenizer_path == config.source.checkpoint_path
     assert config.source.revision is None
@@ -32,7 +32,7 @@ def test_load_dpo_config_reads_default_file() -> None:
     assert config.training.max_steps is None
     assert config.training.bf16 is True
     assert config.output.final_checkpoint_dir == (
-        "runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final"
+        "runs/smollm2-135m-response-distilled/dpo/checkpoints/final"
     )
 
 

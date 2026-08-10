@@ -8,11 +8,10 @@ from distill.utils.config import load_export_config
 def test_load_export_config_reads_default_file() -> None:
     config = load_export_config("configs/export.yaml")
 
-    assert config.model.model_name == "smollm2-135m-deepseek-distilled"
-    assert config.model.export_repo == "tohio/smollm2-135m-deepseek-distilled"
+    assert config.model.model_name == "smollm2-135m-response-distilled"
+    assert config.model.export_repo == "tohio/smollm2-135m-response-distilled"
     assert config.model.tokenizer_path == config.model.checkpoint_path
     assert config.model_card.teacher_model == "deepseek/deepseek-v4-flash"
-    assert config.model_card.teacher_provider == "openrouter"
     assert config.model_card.distillation_type == "response"
     assert config.model_card.dpo_applied is True
     assert (
@@ -45,7 +44,6 @@ def test_logit_export_config_consumes_logit_dpo_checkpoint() -> None:
     assert config.model_card.teacher_model == (
         "HuggingFaceTB/SmolLM2-1.7B-Instruct"
     )
-    assert config.model_card.teacher_provider == "local"
     assert config.model_card.distillation_type == "logit"
 
 
@@ -53,10 +51,9 @@ def test_build_model_card_contains_required_metadata() -> None:
     config = load_export_config("configs/export.yaml")
     card = build_model_card(config)
 
-    assert card.model_name == "smollm2-135m-deepseek-distilled"
-    assert "# smollm2-135m-deepseek-distilled" in card.content
+    assert card.model_name == "smollm2-135m-response-distilled"
+    assert "# smollm2-135m-response-distilled" in card.content
     assert "deepseek/deepseek-v4-flash" in card.content
-    assert "openrouter" in card.content
     assert "DPO-aligned" in card.content
 
 
@@ -80,7 +77,6 @@ model_card:
   output_path: {model_card_path}
   source_checkpoint: tohio/slm-test-instruct
   teacher_model: example/model
-  teacher_provider: openrouter
   distillation_type: response
   dpo_applied: true
   response_dataset: example/response
@@ -123,7 +119,6 @@ model_card:
   output_path: {model_card_path}
   source_checkpoint: example/source
   teacher_model: example/teacher
-  teacher_provider: local
   distillation_type: logit
   dpo_applied: true
   response_dataset: example/response

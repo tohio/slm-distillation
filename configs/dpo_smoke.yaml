@@ -1,7 +1,7 @@
 source:
-  model_name: smollm2-135m-deepseek-distilled-smoke
-  checkpoint_path: runs/smoke/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
-  tokenizer_path: runs/smoke/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final
+  model_name: smollm2-135m-response-distilled-smoke
+  checkpoint_path: runs/smoke/smollm2-135m-response-distilled/response_distill/checkpoints/final
+  tokenizer_path: runs/smoke/smollm2-135m-response-distilled/response_distill/checkpoints/final
   revision: null
 
 data:
@@ -41,7 +41,7 @@ training:
   max_train_samples: 64
 
 output:
-  model_name: smollm2-135m-deepseek-distilled-smoke
-  run_dir: runs/smoke/smollm2-135m-deepseek-distilled/dpo
-  checkpoint_dir: runs/smoke/smollm2-135m-deepseek-distilled/dpo/checkpoints
-  final_checkpoint_dir: runs/smoke/smollm2-135m-deepseek-distilled/dpo/checkpoints/final
+  model_name: smollm2-135m-response-distilled-smoke
+  run_dir: runs/smoke/smollm2-135m-response-distilled/dpo
+  checkpoint_dir: runs/smoke/smollm2-135m-response-distilled/dpo/checkpoints
+  final_checkpoint_dir: runs/smoke/smollm2-135m-response-distilled/dpo/checkpoints/final

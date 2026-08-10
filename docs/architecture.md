@@ -69,8 +69,8 @@ paths and model identities separate.
 
 | Branch | Distillation output | DPO output |
 |---|---|---|
-| Response full | `runs/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final` | `runs/smollm2-135m-deepseek-distilled/dpo/checkpoints/final` |
-| Response smoke | `runs/smoke/smollm2-135m-deepseek-distilled/response_distill/checkpoints/final` | `runs/smoke/smollm2-135m-deepseek-distilled/dpo/checkpoints/final` |
+| Response full | `runs/smollm2-135m-response-distilled/response_distill/checkpoints/final` | `runs/smollm2-135m-response-distilled/dpo/checkpoints/final` |
+| Response smoke | `runs/smoke/smollm2-135m-response-distilled/response_distill/checkpoints/final` | `runs/smoke/smollm2-135m-response-distilled/dpo/checkpoints/final` |
 | Logit full | `runs/smollm2-135m-logit-distilled/logit_distill/checkpoints/final` | `runs/smollm2-135m-logit-distilled/dpo/checkpoints/final` |
 | Logit smoke | `runs/smoke/smollm2-135m-logit-distilled/logit_distill/checkpoints/final` | `runs/smoke/smollm2-135m-logit-distilled/dpo/checkpoints/final` |
 
