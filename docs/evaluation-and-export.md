@@ -23,6 +23,9 @@ Preference evaluation reports chosen-over-rejected accuracy using conditional
 completion log probabilities. Comparison deltas use the first configured model
 as the baseline.
 
+Each configured model is loaded once, reused for generation and preference
+scoring, and released before the next model is loaded.
+
 Evaluation writes one prediction JSONL file per model and a branch summary:
 
 | Branch | Result |

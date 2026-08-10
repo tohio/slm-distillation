@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -144,10 +145,20 @@ def test_run_evaluation_writes_predictions_and_comparisons(
         "response_distilled": ["4", "Blue"],
         "response_dpo": ["4", "Blue"],
     }
+    loaded_models: list[str] = []
+
+    def load_evaluation_model(model_config):
+        loaded_models.append(model_config.name)
+        return SimpleNamespace(name=model_config.name)
+
+    monkeypatch.setattr(
+        "distill.eval.run_eval._load_evaluation_model",
+        load_evaluation_model,
+    )
 
     monkeypatch.setattr(
         "distill.eval.run_eval._generate_predictions",
-        lambda model_config, config, prompts: generated[model_config.name],
+        lambda loaded, config, prompts: generated[loaded.name],
     )
     preference_accuracy = {
         "base": 0.5,
@@ -156,9 +167,7 @@ def test_run_evaluation_writes_predictions_and_comparisons(
     }
     monkeypatch.setattr(
         "distill.eval.run_eval._score_preferences",
-        lambda model_config, config, records: preference_accuracy[
-            model_config.name
-        ],
+        lambda loaded, config, records: preference_accuracy[loaded.name],
     )
 
     def load_dataset(**kwargs):
@@ -178,6 +187,7 @@ def test_run_evaluation_writes_predictions_and_comparisons(
     assert result.models[1].preference_accuracy == 1.0
     assert result.comparisons[0].normalized_exact_match_delta == 1.0
     assert result.comparisons[0].preference_accuracy_delta == 0.5
+    assert loaded_models == ["base", "response_distilled", "response_dpo"]
     assert results_path.exists()
     assert len(list(predictions_dir.glob("*.jsonl"))) == 3
     payload = json.loads(results_path.read_text(encoding="utf-8"))

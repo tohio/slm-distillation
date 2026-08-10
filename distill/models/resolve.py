@@ -19,6 +19,22 @@ class ModelResolution:
 ModelInfoLoader = Callable[..., Any]
 
 
+def build_model_load_kwargs(
+    *,
+    revision: str | None,
+    token: str | None,
+    dtype: Any = None,
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {}
+    if revision is not None:
+        kwargs["revision"] = revision
+    if token is not None:
+        kwargs["token"] = token
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    return kwargs
+
+
 def _looks_like_local_path(reference: str) -> bool:
     return reference.startswith((".", "/", "~"))
 

@@ -3,7 +3,25 @@ from types import SimpleNamespace
 
 import pytest
 
-from distill.models.resolve import resolve_model_reference
+from distill.models.resolve import (
+    build_model_load_kwargs,
+    resolve_model_reference,
+)
+
+
+def test_build_model_load_kwargs_uses_transformers_5_dtype() -> None:
+    kwargs = build_model_load_kwargs(
+        revision="main",
+        token="secret",
+        dtype="bfloat16",
+    )
+
+    assert kwargs == {
+        "revision": "main",
+        "token": "secret",
+        "dtype": "bfloat16",
+    }
+    assert "torch_dtype" not in kwargs
 
 
 def test_resolve_model_reference_accepts_local_directory(tmp_path: Path) -> None:

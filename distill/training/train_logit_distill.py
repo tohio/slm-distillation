@@ -15,6 +15,7 @@ from distill.data.response import (
 from distill.models.resolve import (
     ModelInfoLoader,
     ModelResolution,
+    build_model_load_kwargs,
     resolve_model_reference,
 )
 from distill.training.train_response_distill import encode_response_record
@@ -341,13 +342,16 @@ def train_logit_distill(
 
     hf_token = get_env_value("HF_TOKEN", fallback_to_os=True)
 
-    def model_kwargs(revision: str | None) -> dict[str, Any]:
-        kwargs: dict[str, Any] = {}
-        if revision is not None:
-            kwargs["revision"] = revision
-        if hf_token is not None:
-            kwargs["token"] = hf_token
-        return kwargs
+    def model_kwargs(
+        revision: str | None,
+        *,
+        dtype: Any = None,
+    ) -> dict[str, Any]:
+        return build_model_load_kwargs(
+            revision=revision,
+            token=hf_token,
+            dtype=dtype,
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(
         config.student.tokenizer_path,
@@ -364,9 +368,10 @@ def train_logit_distill(
         config.student.checkpoint_path,
         **model_kwargs(config.student.revision),
     )
-    teacher_kwargs = model_kwargs(config.teacher.revision)
-    if config.distillation.bf16:
-        teacher_kwargs["torch_dtype"] = torch.bfloat16
+    teacher_kwargs = model_kwargs(
+        config.teacher.revision,
+        dtype=torch.bfloat16 if config.distillation.bf16 else None,
+    )
     teacher = AutoModelForCausalLM.from_pretrained(
         config.teacher.checkpoint_path,
         **teacher_kwargs,

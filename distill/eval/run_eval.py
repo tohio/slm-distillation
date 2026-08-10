@@ -16,6 +16,7 @@ from distill.eval.compare_outputs import EvaluationMetrics, score_predictions
 from distill.models.resolve import (
     ModelInfoLoader,
     ModelResolution,
+    build_model_load_kwargs,
     resolve_model_reference,
 )
 from distill.utils.config import (
@@ -87,6 +88,13 @@ class EvaluationResult:
     models: list[ModelEvaluationResult]
     comparisons: list[ModelComparison]
     results_path: str
+
+
+@dataclass(frozen=True)
+class LoadedEvaluationModel:
+    model: Any
+    tokenizer: Any
+    device: Any
 
 
 def build_evaluation_plan(config: EvalConfig) -> EvaluationPlan:
@@ -306,24 +314,20 @@ def _select_eval_rows(
     return ids, prompts, references
 
 
-def _generate_predictions(
+def _load_evaluation_model(
     model_config: EvalModelConfig,
-    config: EvalConfig,
-    prompts: list[str],
-) -> list[str]:
+) -> LoadedEvaluationModel:
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     hf_token = get_env_value("HF_TOKEN", fallback_to_os=True)
-    kwargs: dict[str, Any] = {}
-    if model_config.revision is not None:
-        kwargs["revision"] = model_config.revision
-    if hf_token is not None:
-        kwargs["token"] = hf_token
-
+    common_kwargs = build_model_load_kwargs(
+        revision=model_config.revision,
+        token=hf_token,
+    )
     tokenizer = AutoTokenizer.from_pretrained(
         model_config.tokenizer_name_or_path,
-        **kwargs,
+        **common_kwargs,
     )
     if tokenizer.pad_token_id is None:
         if tokenizer.eos_token_id is None or tokenizer.eos_token is None:
@@ -331,9 +335,11 @@ def _generate_predictions(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    model_kwargs = dict(kwargs)
-    if torch.cuda.is_available():
-        model_kwargs["torch_dtype"] = torch.bfloat16
+    model_kwargs = build_model_load_kwargs(
+        revision=model_config.revision,
+        token=hf_token,
+        dtype=torch.bfloat16 if torch.cuda.is_available() else None,
+    )
     model = AutoModelForCausalLM.from_pretrained(
         model_config.model_name_or_path,
         **model_kwargs,
@@ -341,6 +347,24 @@ def _generate_predictions(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
+    return LoadedEvaluationModel(
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+    )
+
+
+def _generate_predictions(
+    loaded: LoadedEvaluationModel,
+    config: EvalConfig,
+    prompts: list[str],
+) -> list[str]:
+    import torch
+    from transformers import set_seed
+
+    model = loaded.model
+    tokenizer = loaded.tokenizer
+    device = loaded.device
     set_seed(config.generation.seed)
 
     formatted_prompts = [
@@ -379,9 +403,6 @@ def _generate_predictions(
             )
         )
 
-    del model
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
     return predictions
 
 
@@ -524,33 +545,13 @@ def _conditional_log_probability(
 
 
 def _score_preferences(
-    model_config: EvalModelConfig,
+    loaded: LoadedEvaluationModel,
     config: EvalConfig,
     records: list[CanonicalPreferenceRecord],
 ) -> float:
-    import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-
-    hf_token = get_env_value("HF_TOKEN", fallback_to_os=True)
-    kwargs: dict[str, Any] = {}
-    if model_config.revision is not None:
-        kwargs["revision"] = model_config.revision
-    if hf_token is not None:
-        kwargs["token"] = hf_token
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_config.tokenizer_name_or_path,
-        **kwargs,
-    )
-    model_kwargs = dict(kwargs)
-    if torch.cuda.is_available():
-        model_kwargs["torch_dtype"] = torch.bfloat16
-    model = AutoModelForCausalLM.from_pretrained(
-        model_config.model_name_or_path,
-        **model_kwargs,
-    )
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    model.eval()
+    model = loaded.model
+    tokenizer = loaded.tokenizer
+    device = loaded.device
 
     max_length = (
         config.generation.max_input_length
@@ -584,9 +585,6 @@ def _score_preferences(
         elif chosen_score == rejected_score:
             wins += 0.5
 
-    del model
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
     return wins / len(records)
 
 
@@ -699,16 +697,24 @@ def run_evaluation(
     results: list[ModelEvaluationResult] = []
     predictions_dir = Path(config.output.predictions_dir)
     for model_config in config.models:
-        predictions = _generate_predictions(
-            model_config,
-            config,
-            prompts,
-        )
-        preference_accuracy = _score_preferences(
-            model_config,
-            config,
-            preference_records,
-        )
+        loaded = _load_evaluation_model(model_config)
+        try:
+            predictions = _generate_predictions(
+                loaded,
+                config,
+                prompts,
+            )
+            preference_accuracy = _score_preferences(
+                loaded,
+                config,
+                preference_records,
+            )
+        finally:
+            del loaded
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         predictions_path = predictions_dir / f"{model_config.name}.jsonl"
         _write_predictions(
             predictions_path,
