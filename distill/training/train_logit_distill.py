@@ -392,7 +392,7 @@ def train_logit_distill(
         ),
         learning_rate=config.distillation.learning_rate,
         num_train_epochs=config.distillation.num_train_epochs,
-        warmup_ratio=config.distillation.warmup_ratio,
+        warmup_steps=config.distillation.warmup_ratio,
         weight_decay=config.distillation.weight_decay,
         max_grad_norm=config.distillation.max_grad_norm,
         lr_scheduler_type=config.distillation.lr_scheduler_type,

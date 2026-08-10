@@ -12,7 +12,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "python-dotenv>=1.0.1",
     "torch>=2.4.0",
-    "transformers>=4.56.2,<6",
+    "transformers>=5.15.0,<6",
     "trl>=1.8.0,<2",
 ]
 

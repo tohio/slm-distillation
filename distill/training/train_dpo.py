@@ -225,7 +225,7 @@ def train_dpo(
         ),
         learning_rate=config.training.learning_rate,
         num_train_epochs=config.training.num_train_epochs,
-        warmup_ratio=config.training.warmup_ratio,
+        warmup_steps=config.training.warmup_ratio,
         weight_decay=config.training.weight_decay,
         max_grad_norm=config.training.max_grad_norm,
         lr_scheduler_type=config.training.lr_scheduler_type,
