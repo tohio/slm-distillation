@@ -28,7 +28,7 @@ def test_load_dpo_config_reads_default_file() -> None:
     assert config.training.method == "dpo"
     assert config.training.beta == 0.1
     assert config.training.loss_type == ["sigmoid", "sft"]
-    assert config.training.loss_weights == [1.0, 1.0]
+    assert config.training.loss_weights == [1.0, 2.0]
     assert config.training.max_length == 1024
     assert config.training.max_steps is None
     assert config.training.bf16 is True
@@ -49,7 +49,7 @@ def test_build_dpo_training_plan() -> None:
     assert plan.final_checkpoint_dir == config.output.final_checkpoint_dir
     assert plan.beta == config.training.beta
     assert plan.loss_type == ["sigmoid", "sft"]
-    assert plan.loss_weights == [1.0, 1.0]
+    assert plan.loss_weights == [1.0, 2.0]
     assert plan.max_length == 1024
     assert plan.max_steps is None
 
@@ -70,21 +70,22 @@ def test_logit_dpo_config_consumes_logit_final_checkpoint() -> None:
 
 
 @pytest.mark.parametrize(
-    "config_path",
+    ("config_path", "expected_loss_weights"),
     [
-        "configs/dpo.yaml",
-        "configs/dpo_smoke.yaml",
-        "configs/dpo_logit.yaml",
-        "configs/dpo_logit_smoke.yaml",
+        ("configs/dpo.yaml", [1.0, 2.0]),
+        ("configs/dpo_smoke.yaml", [1.0, 2.0]),
+        ("configs/dpo_logit.yaml", [1.0, 1.0]),
+        ("configs/dpo_logit_smoke.yaml", [1.0, 1.0]),
     ],
 )
 def test_all_dpo_branches_anchor_preferences_with_sft(
     config_path: str,
+    expected_loss_weights: list[float],
 ) -> None:
     config = load_dpo_config(config_path)
 
     assert config.training.loss_type == ["sigmoid", "sft"]
-    assert config.training.loss_weights == [1.0, 1.0]
+    assert config.training.loss_weights == expected_loss_weights
 
 
 def test_load_dpo_config_accepts_single_loss_for_compatibility(
