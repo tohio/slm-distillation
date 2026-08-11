@@ -19,6 +19,17 @@ def format_training_log(
     logs: dict[str, Any],
 ) -> list[str]:
     """Format compact console lines while Trainer retains complete metrics."""
+    useful_keys = {
+        "loss",
+        "learning_rate",
+        "grad_norm",
+        "rewards/margins",
+        "loss/hard",
+        "loss/soft_kl",
+    }
+    if not useful_keys.intersection(logs):
+        return []
+
     common_keys = (
         ("epoch", "epoch"),
         ("loss", "loss"),
@@ -33,7 +44,6 @@ def format_training_log(
         if key in logs:
             common.append(f"{label} {_format_metric(logs[key])}")
 
-    lines = [" | ".join(common)]
     if "rewards/margins" in logs:
         dpo_keys = (
             ("rewards/chosen", "chosen"),
@@ -42,21 +52,20 @@ def format_training_log(
             ("rewards/accuracies", "accuracy"),
             ("entropy", "entropy"),
         )
-        values = [
+        values = ["reward"] + [
             f"{label} {_format_metric(logs[key])}"
             for key, label in dpo_keys
             if key in logs
         ]
-        if values:
-            lines.append("  reward | " + " | ".join(values))
+        common.extend(values)
     elif "loss/hard" in logs or "loss/soft_kl" in logs:
-        values = []
+        values = ["components"]
         if "loss/hard" in logs:
             values.append(f"hard {_format_metric(logs['loss/hard'])}")
         if "loss/soft_kl" in logs:
             values.append(f"soft_kl {_format_metric(logs['loss/soft_kl'])}")
-        lines.append("  components | " + " | ".join(values))
-    return lines
+        common.extend(values)
+    return [" | ".join(common)]
 
 
 def build_compact_logging_callback(stage: str) -> Any:
