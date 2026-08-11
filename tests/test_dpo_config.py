@@ -92,7 +92,7 @@ def test_load_dpo_config_accepts_single_loss_for_compatibility(
 
     raw = yaml.safe_load(Path("configs/dpo.yaml").read_text(encoding="utf-8"))
     raw["training"]["loss_type"] = "sigmoid"
-    raw["training"].pop("loss_weights")
+    raw["training"].pop("loss_weights", None)
     path = tmp_path / "dpo.yaml"
     path.write_text(yaml.safe_dump(raw), encoding="utf-8")
 
