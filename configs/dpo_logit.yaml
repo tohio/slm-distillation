@@ -33,12 +33,7 @@ training:
   gradient_checkpointing: true
   dataloader_num_workers: 4
   dataset_num_proc: 4
-  loss_type:
-    - sigmoid
-    - sft
-  loss_weights:
-    - 1.0
-    - 1.0
+  loss_type: sigmoid
   truncation_mode: keep_start
   precompute_ref_log_probs: false
   seed: 42

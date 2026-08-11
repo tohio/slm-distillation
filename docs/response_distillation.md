@@ -42,9 +42,11 @@ Smoke output is isolated under `runs/smoke/`. Production output is written to:
 runs/smollm2-135m-response-distilled/response_distill/checkpoints/final
 ~~~
 
-The response DPO config consumes that model and tokenizer path. It combines
-sigmoid preference loss with chosen-response SFT loss so preference learning
-does not reduce the likelihood of both responses unchecked.
+The response DPO config consumes that model and tokenizer path as a separate
+downstream alignment stage. Default DPO training uses only the original
+sigmoid preference objective; it does not add an SFT loss to the DPO objective.
+See the [DPO paper](https://arxiv.org/abs/2305.18290) and
+[TRL DPO loss documentation](https://huggingface.co/docs/trl/dpo_trainer#loss-types).
 
 ## Swapping Models or Data
 

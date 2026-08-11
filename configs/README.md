@@ -55,8 +55,8 @@ See [Configuration](../docs/configuration.md) for contracts and safe swapping.
 - Keep smoke paths under `runs/smoke/`.
 - Keep full paths under `runs/`.
 - Use `null` for optional config name, revision, or runtime bounds.
-- Keep DPO loss names and weights aligned; the defaults combine preference and
-  chosen-response SFT losses.
+- Keep every response and logit DPO branch on the original sigmoid DPO
+  baseline unless an alternative objective is introduced as an experiment.
 - Store credentials only in `.env` or process environment variables.
 
 ## Gotchas

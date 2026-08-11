@@ -57,17 +57,18 @@ W&B when enabled.
 The response branch performs supervised fine-tuning on published teacher
 responses, then aligns that checkpoint with DPO.
 
-DPO combines the sigmoid preference loss with an SFT loss on chosen responses:
+Both response and logit branches use the original sigmoid DPO baseline:
 
 ~~~yaml
-loss_type: [sigmoid, sft]
-loss_weights: [1.0, 1.0]
+loss_type: sigmoid
 ~~~
 
-The chosen-response term prevents preference separation from being achieved
-only by reducing rejected-response likelihood. During a bounded stability run,
-watch chosen reward, rejected reward, reward margin, preference accuracy, and
-entropy before committing to the full epoch.
+No `loss_weights` are configured because the baseline uses one objective. This
+matches the [original DPO paper](https://arxiv.org/abs/2305.18290) and TRL's
+[documented default DPO loss](https://huggingface.co/docs/trl/dpo_trainer#loss-types).
+During a bounded stability run, watch chosen reward, rejected reward, reward
+margin, preference accuracy, entropy, and response-quality metrics before
+committing to the full epoch.
 
 ### Smoke
 
