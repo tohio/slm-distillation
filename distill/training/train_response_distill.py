@@ -24,6 +24,7 @@ from distill.utils.config import (
     load_response_distill_config,
 )
 from distill.utils.env import configure_wandb_environment, get_env_value
+from distill.utils.hardware import validate_single_cuda_gpu
 from distill.utils.logging import install_compact_logging
 
 
@@ -311,6 +312,7 @@ def train_response_distill(
     resume_from_checkpoint: str | None = None,
     dataset_loader: Any = None,
 ) -> ResponseTrainingResult:
+    import torch
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
@@ -320,6 +322,7 @@ def train_response_distill(
     )
 
     config = load_response_distill_config(config_path)
+    validate_single_cuda_gpu(torch, stage="Response distillation")
     hf_token = get_env_value("HF_TOKEN", fallback_to_os=True)
     common_model_kwargs: dict[str, Any] = {
         "revision": config.model.revision,

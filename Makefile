@@ -12,7 +12,6 @@ RESPONSE_DATA_LIMIT ?= 100
 RESPONSE_MAX_STEPS ?=
 RESPONSE_MAX_TRAIN_SAMPLES ?=
 RESPONSE_RESUME_FROM_CHECKPOINT ?=
-RESPONSE_LAUNCH ?= $(PYTHON)
 RESPONSE_SMOKE_STEPS ?= 5
 RESPONSE_SMOKE_SAMPLES ?= 64
 DPO_CONFIG ?= configs/dpo.yaml
@@ -23,7 +22,6 @@ DPO_DATA_LIMIT ?= 100
 DPO_MAX_STEPS ?=
 DPO_MAX_TRAIN_SAMPLES ?=
 DPO_RESUME_FROM_CHECKPOINT ?=
-DPO_LAUNCH ?= $(PYTHON)
 DPO_SMOKE_STEPS ?= 5
 DPO_SMOKE_SAMPLES ?= 64
 LOGIT_CONFIG ?= configs/logit_distill.yaml
@@ -124,10 +122,10 @@ train-response-dry-run:
 >   --dry-run
 
 train-response:
-> PYTHONPATH=$(PYTHONPATH) $(RESPONSE_LAUNCH) scripts/train_response_distill.py --config $(RESPONSE_CONFIG)$(if $(RESPONSE_TRAIN_ARGS), $(RESPONSE_TRAIN_ARGS))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_response_distill.py --config $(RESPONSE_CONFIG)$(if $(RESPONSE_TRAIN_ARGS), $(RESPONSE_TRAIN_ARGS))
 
 train-response-smoke:
-> PYTHONPATH=$(PYTHONPATH) $(RESPONSE_LAUNCH) scripts/train_response_distill.py \
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_response_distill.py \
 >   --config $(RESPONSE_SMOKE_CONFIG) \
 >   --max-steps $(RESPONSE_SMOKE_STEPS) \
 >   --max-train-samples $(RESPONSE_SMOKE_SAMPLES)
@@ -188,10 +186,10 @@ validate-logit-inputs:
 >   --limit $(LOGIT_DATA_LIMIT)
 
 train-dpo:
-> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py --config $(DPO_CONFIG)$(if $(DPO_TRAIN_ARGS), $(DPO_TRAIN_ARGS))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py --config $(DPO_CONFIG)$(if $(DPO_TRAIN_ARGS), $(DPO_TRAIN_ARGS))
 
 train-dpo-smoke:
-> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py \
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
 >   --config $(DPO_SMOKE_CONFIG) \
 >   --max-steps $(DPO_SMOKE_STEPS) \
 >   --max-train-samples $(DPO_SMOKE_SAMPLES)
@@ -208,10 +206,10 @@ validate-dpo-inputs:
 >   --limit $(DPO_DATA_LIMIT)
 
 train-dpo-logit:
-> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py --config $(DPO_LOGIT_CONFIG)$(if $(DPO_TRAIN_ARGS), $(DPO_TRAIN_ARGS))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py --config $(DPO_LOGIT_CONFIG)$(if $(DPO_TRAIN_ARGS), $(DPO_TRAIN_ARGS))
 
 train-dpo-logit-smoke:
-> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py \
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_dpo.py \
 >   --config $(DPO_LOGIT_SMOKE_CONFIG) \
 >   --max-steps $(DPO_SMOKE_STEPS) \
 >   --max-train-samples $(DPO_SMOKE_SAMPLES)

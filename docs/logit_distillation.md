@@ -40,8 +40,8 @@ text is tokenized only by the student.
 
 ## Hardware Contract
 
-The current implementation requires exactly one visible CUDA GPU and accepts
-these configured GPU classes:
+Logit training requires exactly one visible CUDA GPU from the configured
+classes:
 
 - B300
 - B200
@@ -55,8 +55,9 @@ loaded in bfloat16; gradient checkpointing applies to the student.
 
 ~~~bash
 make validate-logit-inputs LOGIT_DATA_LIMIT=100
-CUDA_VISIBLE_DEVICES=0 make train-logit-smoke
-CUDA_VISIBLE_DEVICES=0 make train-logit
+export CUDA_VISIBLE_DEVICES=0
+make train-logit-smoke
+make train-logit
 ~~~
 
 The validator resolves both model references, compares tokenizers, and

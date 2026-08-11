@@ -23,11 +23,22 @@ Add your Hugging Face token to `.env` before accessing Hub resources. The
 inside the active virtual environment.
 
 `HF_TOKEN` is optional for public inputs but recommended for Hub rate limits;
-it is required for private inputs and model uploads. Logit training requires
-exactly one visible supported CUDA GPU.
+it is required for private inputs and model uploads.
 
 `python3.12-dev` supplies `Python.h`, while `build-essential` supplies the
 compiler toolchain used by runtime-compiled GPU kernels.
+
+## Hardware
+
+All response, logit, and DPO training targets require exactly one visible CUDA
+GPU. Select the GPU before training:
+
+~~~bash
+export CUDA_VISIBLE_DEVICES=0
+~~~
+
+Training exits with an error when CUDA is unavailable or more than one GPU is
+visible. Input validation and dry-run targets do not allocate a GPU.
 
 ## Experiment Tracking
 
@@ -115,7 +126,7 @@ SmolLM2-135M-Instruct as the student.
 
 ~~~bash
 make validate-logit-inputs LOGIT_DATA_LIMIT=100
-CUDA_VISIBLE_DEVICES=0 make train-logit-smoke
+make train-logit-smoke
 make validate-dpo-logit-inputs DPO_LOGIT_CONFIG=configs/dpo_logit_smoke.yaml DPO_DATA_LIMIT=100
 make train-dpo-logit-smoke
 make validate-eval-logit-inputs EVAL_LOGIT_CONFIG=configs/eval_logit_smoke.yaml EVAL_LIMIT=20
@@ -141,7 +152,7 @@ configs/logit_distill_smoke.yaml
 
 ~~~bash
 make validate-logit-inputs LOGIT_DATA_LIMIT=100
-CUDA_VISIBLE_DEVICES=0 make train-logit
+make train-logit
 make validate-dpo-logit-inputs DPO_DATA_LIMIT=100
 make train-dpo-logit
 make validate-eval-logit-inputs EVAL_LIMIT=200
@@ -169,16 +180,6 @@ make train-response RESPONSE_RESUME_FROM_CHECKPOINT=runs/.../checkpoint-250
 make train-logit LOGIT_RESUME_FROM_CHECKPOINT=runs/.../checkpoint-250
 make train-dpo DPO_RESUME_FROM_CHECKPOINT=runs/.../checkpoint-250
 ~~~
-
-Response and DPO can use an Accelerate launcher:
-
-~~~bash
-make train-response RESPONSE_LAUNCH="accelerate launch --multi_gpu --num_processes 2"
-make train-dpo DPO_LAUNCH="accelerate launch --multi_gpu --num_processes 2"
-~~~
-
-The logit branch deliberately rejects multi-GPU execution because its current
-contract colocates teacher and student on one supported GPU.
 
 ## See Also
 

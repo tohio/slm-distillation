@@ -19,6 +19,7 @@ from distill.models.resolve import (
 )
 from distill.utils.config import DpoConfig, load_dpo_config
 from distill.utils.env import configure_wandb_environment, get_env_value
+from distill.utils.hardware import validate_single_cuda_gpu
 from distill.utils.logging import install_compact_logging
 
 
@@ -193,11 +194,13 @@ def train_dpo(
     resume_from_checkpoint: str | None = None,
     dataset_loader: Any = None,
 ) -> DpoTrainingResult:
+    import torch
     from transformers import AutoTokenizer
     from trl import DPOConfig as TrlDpoConfig
     from trl import DPOTrainer
 
     config = load_dpo_config(config_path)
+    validate_single_cuda_gpu(torch, stage="DPO training")
     hf_token = get_env_value("HF_TOKEN", fallback_to_os=True)
     model_init_kwargs: dict[str, Any] = {}
     if config.source.revision is not None:

@@ -44,7 +44,7 @@ checkpoint handoffs.
 Requirements:
 
 - Python 3.12+
-- CUDA-capable GPU for training
+- Exactly one visible CUDA-capable GPU for training
 - Hugging Face access for model and dataset downloads
 
 On Ubuntu, install the Python headers and compiler toolchain required by
@@ -73,6 +73,14 @@ W&B API key only when experiment tracking is wanted. The `make install` target
 installs all packages declared in `requirements.txt` inside the active virtual
 environment.
 
+Select one GPU before running any training target:
+
+~~~bash
+export CUDA_VISIBLE_DEVICES=0
+~~~
+
+Training exits with an error when zero or multiple CUDA GPUs are visible.
+
 Validate and smoke-test the response branch:
 
 ~~~bash
@@ -91,11 +99,11 @@ make eval-response
 make export
 ~~~
 
-Validate and smoke-test the logit branch on one visible supported GPU:
+Validate and smoke-test the logit branch:
 
 ~~~bash
 make validate-logit-inputs LOGIT_DATA_LIMIT=100
-CUDA_VISIBLE_DEVICES=0 make train-logit-smoke
+make train-logit-smoke
 make train-dpo-logit-smoke
 make eval-logit-smoke
 ~~~
@@ -103,7 +111,7 @@ make eval-logit-smoke
 Run the production logit branch after the smoke path passes:
 
 ~~~bash
-CUDA_VISIBLE_DEVICES=0 make train-logit
+make train-logit
 make train-dpo-logit
 make eval-logit
 make export-logit

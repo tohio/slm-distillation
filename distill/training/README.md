@@ -46,7 +46,7 @@ production sequences.
 ## Conventions
 
 - Compute causal loss only on supervised response tokens.
-- Combine DPO preference loss with chosen-response SFT anchoring.
+- Use the sigmoid DPO baseline for both branches.
 - Save model and tokenizer together in each final checkpoint.
 - Keep smoke and full outputs in separate roots.
 - Treat configured final checkpoint paths as downstream contracts.
@@ -54,7 +54,7 @@ production sequences.
 
 ## Gotchas
 
-DPO validation requires its upstream final checkpoint to exist. Logit training
-requires matching tokenizers and exactly one visible supported CUDA GPU. The
-logit validator checks metadata, tokenizers, and data but does not load model
-weights or execute CUDA.
+DPO validation requires its upstream final checkpoint to exist. Every training
+stage requires exactly one visible CUDA GPU. Logit training additionally
+requires matching tokenizers and a configured supported GPU class. Input
+validators do not load model weights or execute CUDA.

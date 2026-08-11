@@ -53,5 +53,6 @@ and row converters directly.
 
 ## Gotchas
 
-Logit training requires compatible teacher/student tokenizers and exactly one
-visible supported GPU.
+Every training stage requires exactly one visible CUDA GPU. Logit training also
+requires compatible teacher/student tokenizers and a configured supported GPU
+class.

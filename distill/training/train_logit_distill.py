@@ -25,6 +25,7 @@ from distill.utils.config import (
     load_logit_distill_config,
 )
 from distill.utils.env import configure_wandb_environment, get_env_value
+from distill.utils.hardware import validate_single_cuda_gpu
 from distill.utils.logging import install_compact_logging
 from distill.utils.tokenizer_compat import (
     TokenizerCompatibilityResult,
@@ -257,24 +258,15 @@ def prepare_logit_training_dataset(
 
 
 def _validate_training_hardware(config: LogitDistillConfig, torch: Any) -> None:
-    if not torch.cuda.is_available():
-        raise RuntimeError("Logit distillation requires a CUDA GPU")
-    if config.hardware.single_gpu_required and torch.cuda.device_count() != 1:
-        raise RuntimeError(
-            "Logit distillation requires exactly one visible GPU; set "
-            "CUDA_VISIBLE_DEVICES to select one GPU"
+    if not config.hardware.single_gpu_required:
+        raise ValueError(
+            "Logit distillation hardware.single_gpu_required must be true"
         )
-
-    gpu_name = torch.cuda.get_device_name(0).lower().replace(" ", "")
-    allowed = [
-        gpu_class.lower().replace(" ", "")
-        for gpu_class in config.hardware.allowed_gpu_classes
-    ]
-    if not any(gpu_class in gpu_name for gpu_class in allowed):
-        raise RuntimeError(
-            f"Unsupported GPU for logit distillation: "
-            f"{torch.cuda.get_device_name(0)}"
-        )
+    validate_single_cuda_gpu(
+        torch,
+        stage="Logit distillation",
+        allowed_gpu_classes=config.hardware.allowed_gpu_classes,
+    )
 
 
 def train_logit_distill(

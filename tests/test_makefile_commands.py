@@ -30,3 +30,19 @@ def test_optional_training_arguments_are_preserved() -> None:
     assert "--max-steps 250" in output
     assert "--max-train-samples 2000" in output
     assert "--resume-from-checkpoint runs/test/checkpoint-100" in output
+
+
+def test_training_targets_use_single_process_python_launcher() -> None:
+    for target in (
+        "train-response",
+        "train-response-smoke",
+        "train-logit",
+        "train-logit-smoke",
+        "train-dpo",
+        "train-dpo-smoke",
+        "train-dpo-logit",
+        "train-dpo-logit-smoke",
+    ):
+        output = _make_dry_run(target)
+        assert "PYTHONPATH=. python3 scripts/" in output
+        assert "accelerate launch" not in output

@@ -12,6 +12,7 @@ model training.
 utils/
 ├── config.py
 ├── env.py
+├── hardware.py
 ├── io.py
 ├── logging.py
 └── tokenizer_compat.py
@@ -23,6 +24,7 @@ utils/
 |---|---|
 | `config.py` | Typed YAML loaders and stage-specific validation |
 | `env.py` | `.env` and process-environment lookup |
+| `hardware.py` | Single-visible-CUDA-GPU training contract |
 | `tokenizer_compat.py` | Vocabulary, token-ID, and special-token comparison |
 | `io.py` | Reserved shared IO helpers |
 | `logging.py` | Reserved shared logging helpers |

@@ -112,14 +112,12 @@ branch sequences live in [`docs/training.md`](docs/training.md).
 | `RESPONSE_MAX_STEPS` | unset | Override full response max steps |
 | `RESPONSE_MAX_TRAIN_SAMPLES` | unset | Bound full response training rows |
 | `RESPONSE_RESUME_FROM_CHECKPOINT` | unset | Resume response training |
-| `RESPONSE_LAUNCH` | `python3` | Response launcher, including Accelerate commands |
 | `RESPONSE_SMOKE_STEPS` | `5` | Response smoke steps |
 | `RESPONSE_SMOKE_SAMPLES` | `64` | Response smoke rows |
 | `DPO_DATA_LIMIT` | `100` | Rows inspected by DPO validation |
 | `DPO_MAX_STEPS` | unset | Override either full DPO target's max steps |
 | `DPO_MAX_TRAIN_SAMPLES` | unset | Bound either full DPO target's training rows |
 | `DPO_RESUME_FROM_CHECKPOINT` | unset | Resume either DPO branch |
-| `DPO_LAUNCH` | `python3` | DPO launcher, including Accelerate commands |
 | `DPO_SMOKE_STEPS` | `5` | Either DPO smoke target's steps |
 | `DPO_SMOKE_SAMPLES` | `64` | Either DPO smoke target's rows |
 | `LOGIT_DATA_LIMIT` | `100` | Rows inspected by logit validation |
@@ -154,4 +152,4 @@ make unpack-artifacts ARTIFACT=artifacts/model-run.tar.gz
 | `AWS_ACCESS_KEY_ID` | S3 client credential |
 | `AWS_SECRET_ACCESS_KEY` | S3 client credential |
 | `AWS_DEFAULT_REGION` | S3 client region |
-| `CUDA_VISIBLE_DEVICES` | Select the single GPU used by logit training |
+| `CUDA_VISIBLE_DEVICES` | Select the single GPU used by every training target |
