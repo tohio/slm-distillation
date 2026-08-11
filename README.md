@@ -47,6 +47,14 @@ Requirements:
 - CUDA-capable GPU for training
 - Hugging Face access for model and dataset downloads
 
+On Ubuntu, install the Python headers and compiler toolchain required by
+runtime-compiled GPU kernels:
+
+~~~bash
+sudo apt-get update
+sudo apt-get install -y python3.12-venv python3.12-dev build-essential
+~~~
+
 ~~~bash
 git clone https://github.com/tohio/slm-distillation.git
 cd slm-distillation
@@ -60,9 +68,10 @@ make install
 make test
 ~~~
 
-Add your Hugging Face token to `.env` before accessing Hub resources. The
-`make install` target installs all packages declared in `requirements.txt`
-inside the active virtual environment.
+Add your Hugging Face token to `.env` before accessing Hub resources. Add a
+W&B API key only when experiment tracking is wanted. The `make install` target
+installs all packages declared in `requirements.txt` inside the active virtual
+environment.
 
 Validate and smoke-test the response branch:
 
@@ -82,8 +91,28 @@ make eval-response
 make export
 ~~~
 
+Validate and smoke-test the logit branch on one visible supported GPU:
+
+~~~bash
+make validate-logit-inputs LOGIT_DATA_LIMIT=100
+CUDA_VISIBLE_DEVICES=0 make train-logit-smoke
+make train-dpo-logit-smoke
+make eval-logit-smoke
+~~~
+
+Run the production logit branch after the smoke path passes:
+
+~~~bash
+CUDA_VISIBLE_DEVICES=0 make train-logit
+make train-dpo-logit
+make eval-logit
+make export-logit
+~~~
+
 See [Training](docs/training.md) for both end-to-end branches and
 [COMMAND.md](COMMAND.md) for the complete Make target and variable reference.
+The [response](docs/response_distillation.md) and
+[logit](docs/logit_distillation.md) objectives are documented separately.
 
 ## Project Structure
 

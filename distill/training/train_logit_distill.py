@@ -24,7 +24,8 @@ from distill.utils.config import (
     ResponseDataConfig,
     load_logit_distill_config,
 )
-from distill.utils.env import get_env_value
+from distill.utils.env import configure_wandb_environment, get_env_value
+from distill.utils.logging import install_compact_logging
 from distill.utils.tokenizer_compat import (
     TokenizerCompatibilityResult,
     TokenizerLoader,
@@ -81,6 +82,7 @@ def compute_logit_distillation_loss(
     hard_loss: Any,
     temperature: float,
     alpha: float,
+    return_components: bool = False,
 ) -> Any:
     import torch.nn.functional as functional
 
@@ -110,7 +112,10 @@ def compute_logit_distillation_loss(
         * temperature
         * temperature
     )
-    return alpha * hard_loss + (1.0 - alpha) * soft_loss
+    loss = alpha * hard_loss + (1.0 - alpha) * soft_loss
+    if return_components:
+        return loss, hard_loss, soft_loss
+    return loss
 
 
 def _response_data_config(config: LogitDistillConfig) -> ResponseDataConfig:
@@ -302,6 +307,9 @@ def train_logit_distill(
             self.teacher_model = teacher_model
             self.distillation_temperature = temperature
             self.distillation_alpha = alpha
+            self._hard_loss_sum = None
+            self._soft_loss_sum = None
+            self._component_loss_count = 0
 
         def compute_loss(
             self,
@@ -319,17 +327,45 @@ def train_logit_distill(
                     attention_mask=inputs["attention_mask"],
                     use_cache=False,
                 )
-            loss = compute_logit_distillation_loss(
+            loss, hard_loss, soft_loss = compute_logit_distillation_loss(
                 student_logits=student_outputs.logits,
                 teacher_logits=teacher_outputs.logits,
                 labels=labels,
                 hard_loss=student_outputs.loss,
                 temperature=self.distillation_temperature,
                 alpha=self.distillation_alpha,
+                return_components=True,
             )
+            detached_hard = hard_loss.detach()
+            detached_soft = soft_loss.detach()
+            self._hard_loss_sum = (
+                detached_hard
+                if self._hard_loss_sum is None
+                else self._hard_loss_sum + detached_hard
+            )
+            self._soft_loss_sum = (
+                detached_soft
+                if self._soft_loss_sum is None
+                else self._soft_loss_sum + detached_soft
+            )
+            self._component_loss_count += 1
             if return_outputs:
                 return loss, student_outputs
             return loss
+
+        def log(self, logs: dict[str, Any], *args: Any, **kwargs: Any) -> None:
+            enriched = dict(logs)
+            if "loss" in enriched and self._component_loss_count:
+                enriched["loss/hard"] = float(
+                    self._hard_loss_sum.item() / self._component_loss_count
+                )
+                enriched["loss/soft_kl"] = float(
+                    self._soft_loss_sum.item() / self._component_loss_count
+                )
+                self._hard_loss_sum = None
+                self._soft_loss_sum = None
+                self._component_loss_count = 0
+            super().log(enriched, *args, **kwargs)
 
     config = load_logit_distill_config(config_path)
     _validate_training_hardware(config, torch)
@@ -415,7 +451,11 @@ def train_logit_distill(
         ),
         seed=config.distillation.seed,
         max_steps=resolved_max_steps if resolved_max_steps is not None else -1,
-        report_to=[],
+        report_to=configure_wandb_environment(
+            run_name=config.output.model_name,
+            stage="logit-distill",
+        ),
+        disable_tqdm=True,
         remove_unused_columns=False,
     )
     teacher.to(training_args.device)
@@ -448,6 +488,7 @@ def train_logit_distill(
         data_collator=collator,
         processing_class=tokenizer,
     )
+    install_compact_logging(trainer, stage="logit-distill")
     train_output = trainer.train(
         resume_from_checkpoint=resume_from_checkpoint,
     )

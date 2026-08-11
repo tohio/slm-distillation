@@ -36,12 +36,20 @@ make verify-artifacts-logit
 
 Use the push/pull targets only when S3 handoff is required.
 
+Packing creates the configured local `.tar.gz`. Pushing does not upload that
+archive: it stages the same configured files and uploads them individually,
+along with `manifest.json`, beneath the branch run prefix. The staged set
+contains both final checkpoints, top-level evaluation results, and the model
+card. It excludes datasets, model caches, intermediate checkpoints, and nested
+prediction files.
+
 ## Conventions
 
 - Include generated model outputs, evaluation, and provenance.
 - Reference published datasets by ID instead of duplicating them.
 - Verify manifests before transfer or server handoff.
 - Keep response and logit artifact roots separate.
+- Treat S3 handoff as optional and separate from Hugging Face export.
 
 ## Gotchas
 

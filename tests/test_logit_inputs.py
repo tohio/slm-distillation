@@ -105,3 +105,22 @@ def test_logit_loss_rejects_batch_without_response_tokens() -> None:
             temperature=2.0,
             alpha=0.5,
         )
+
+
+def test_logit_loss_can_return_hard_and_soft_components() -> None:
+    logits = torch.zeros((1, 2, 3))
+    hard_loss = torch.tensor(2.0)
+
+    total, hard, soft = compute_logit_distillation_loss(
+        student_logits=logits,
+        teacher_logits=logits,
+        labels=torch.tensor([[-100, 1]]),
+        hard_loss=hard_loss,
+        temperature=2.0,
+        alpha=0.5,
+        return_components=True,
+    )
+
+    assert total.item() == pytest.approx(1.0)
+    assert hard.item() == pytest.approx(2.0)
+    assert soft.item() == pytest.approx(0.0)

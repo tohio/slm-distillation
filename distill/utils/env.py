@@ -7,6 +7,12 @@ from dotenv import dotenv_values
 
 
 DEFAULT_ENV_PATH = ".env"
+WANDB_ENV_KEYS = (
+    "WANDB_API_KEY",
+    "WANDB_PROJECT",
+    "WANDB_ENTITY",
+    "WANDB_MODE",
+)
 
 
 def load_env_file(path: str | Path = DEFAULT_ENV_PATH) -> dict[str, str]:
@@ -55,3 +61,29 @@ def require_env_value(
         raise ValueError(f"{key} is required in {env_path}")
 
     return value
+
+
+def configure_wandb_environment(
+    *,
+    run_name: str,
+    stage: str,
+    env_path: str | Path = DEFAULT_ENV_PATH,
+) -> list[str]:
+    """Load optional W&B settings and return Trainer reporting targets."""
+    values = load_env_file(env_path)
+    for key in WANDB_ENV_KEYS:
+        value = values.get(key)
+        if value and not os.getenv(key):
+            os.environ[key] = value
+
+    mode = os.getenv("WANDB_MODE", "").strip().lower()
+    api_key = os.getenv("WANDB_API_KEY", "").strip()
+    enabled = bool(api_key) or mode == "offline"
+    if not enabled or mode == "disabled":
+        return []
+
+    os.environ.setdefault("WANDB_PROJECT", "slm-distillation")
+    os.environ.setdefault("WANDB_NAME", f"{run_name}-{stage}")
+    os.environ.setdefault("WANDB_GROUP", run_name)
+    os.environ.setdefault("WANDB_JOB_TYPE", stage)
+    return ["wandb"]

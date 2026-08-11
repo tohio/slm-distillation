@@ -23,7 +23,8 @@ from distill.utils.config import (
     ResponseFormattingConfig,
     load_response_distill_config,
 )
-from distill.utils.env import get_env_value
+from distill.utils.env import configure_wandb_environment, get_env_value
+from distill.utils.logging import install_compact_logging
 
 
 @dataclass(frozen=True)
@@ -371,7 +372,11 @@ def train_response_distill(
         dataloader_num_workers=config.training.dataloader_num_workers,
         seed=config.training.seed,
         max_steps=resolved_max_steps if resolved_max_steps is not None else -1,
-        report_to=[],
+        report_to=configure_wandb_environment(
+            run_name=config.output.model_name,
+            stage="response-distill",
+        ),
+        disable_tqdm=True,
         remove_unused_columns=False,
     )
     with training_args.main_process_first(
@@ -398,6 +403,7 @@ def train_response_distill(
         data_collator=collator,
         processing_class=tokenizer,
     )
+    install_compact_logging(trainer, stage="response-distill")
 
     train_output = trainer.train(
         resume_from_checkpoint=resume_from_checkpoint,

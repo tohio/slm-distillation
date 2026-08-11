@@ -27,7 +27,8 @@ def test_load_dpo_config_reads_default_file() -> None:
     assert config.data.rejected_field == "rejected"
     assert config.training.method == "dpo"
     assert config.training.beta == 0.1
-    assert config.training.loss_type == "sigmoid"
+    assert config.training.loss_type == ["sigmoid", "sft"]
+    assert config.training.loss_weights == [1.0, 1.0]
     assert config.training.max_length == 1024
     assert config.training.max_steps is None
     assert config.training.bf16 is True
@@ -47,7 +48,8 @@ def test_build_dpo_training_plan() -> None:
     assert plan.output_dir == config.output.checkpoint_dir
     assert plan.final_checkpoint_dir == config.output.final_checkpoint_dir
     assert plan.beta == config.training.beta
-    assert plan.loss_type == "sigmoid"
+    assert plan.loss_type == ["sigmoid", "sft"]
+    assert plan.loss_weights == [1.0, 1.0]
     assert plan.max_length == 1024
     assert plan.max_steps is None
 
@@ -63,6 +65,57 @@ def test_logit_dpo_config_consumes_logit_final_checkpoint() -> None:
     assert config.output.final_checkpoint_dir == (
         "runs/smollm2-135m-logit-distilled/dpo/checkpoints/final"
     )
+    assert config.training.loss_type == ["sigmoid", "sft"]
+    assert config.training.loss_weights == [1.0, 1.0]
+
+
+@pytest.mark.parametrize(
+    "config_path",
+    [
+        "configs/dpo.yaml",
+        "configs/dpo_smoke.yaml",
+        "configs/dpo_logit.yaml",
+        "configs/dpo_logit_smoke.yaml",
+    ],
+)
+def test_all_dpo_branches_anchor_preferences_with_sft(
+    config_path: str,
+) -> None:
+    config = load_dpo_config(config_path)
+
+    assert config.training.loss_type == ["sigmoid", "sft"]
+    assert config.training.loss_weights == [1.0, 1.0]
+
+
+def test_load_dpo_config_accepts_single_loss_for_compatibility(
+    tmp_path: Path,
+) -> None:
+    import yaml
+
+    raw = yaml.safe_load(Path("configs/dpo.yaml").read_text(encoding="utf-8"))
+    raw["training"]["loss_type"] = "sigmoid"
+    raw["training"].pop("loss_weights")
+    path = tmp_path / "dpo.yaml"
+    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+
+    config = load_dpo_config(path)
+
+    assert config.training.loss_type == ["sigmoid"]
+    assert config.training.loss_weights == [1.0]
+
+
+def test_load_dpo_config_rejects_mismatched_loss_weights(
+    tmp_path: Path,
+) -> None:
+    import yaml
+
+    raw = yaml.safe_load(Path("configs/dpo.yaml").read_text(encoding="utf-8"))
+    raw["training"]["loss_weights"] = [1.0]
+    path = tmp_path / "dpo.yaml"
+    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must match"):
+        load_dpo_config(path)
 
 
 def test_smoke_branches_are_isolated_and_preserve_handoffs() -> None:

@@ -110,7 +110,8 @@ class DpoTrainingConfig:
     gradient_checkpointing: bool
     dataloader_num_workers: int
     dataset_num_proc: int
-    loss_type: str
+    loss_type: list[str]
+    loss_weights: list[float]
     truncation_mode: str
     precompute_ref_log_probs: bool
     seed: int
@@ -349,6 +350,37 @@ def _require_float_or_int(data: dict[str, Any], key: str) -> float:
     return float(value)
 
 
+def _require_str_or_str_list(data: dict[str, Any], key: str) -> list[str]:
+    value = data.get(key)
+    if isinstance(value, str) and value:
+        return [value]
+    if (
+        isinstance(value, list)
+        and value
+        and all(isinstance(item, str) and item for item in value)
+    ):
+        return list(value)
+    raise ValueError(f"config requires non-empty string or string list '{key}'")
+
+
+def _optional_numeric_list(
+    data: dict[str, Any],
+    key: str,
+    *,
+    default_length: int,
+) -> list[float]:
+    value = data.get(key)
+    if value is None:
+        return [1.0] * default_length
+    if (
+        not isinstance(value, list)
+        or not value
+        or not all(isinstance(item, (float, int)) for item in value)
+    ):
+        raise ValueError(f"config optional field '{key}' must be a numeric list")
+    return [float(item) for item in value]
+
+
 def _require_bool(data: dict[str, Any], key: str) -> bool:
     value = data.get(key)
     if not isinstance(value, bool):
@@ -499,6 +531,12 @@ def load_dpo_config(path: str | Path) -> DpoConfig:
     if method != "dpo":
         raise ValueError("DPO config requires training.method='dpo'")
 
+    loss_types = _require_str_or_str_list(training, "loss_type")
+    loss_weights = _optional_numeric_list(
+        training,
+        "loss_weights",
+        default_length=len(loss_types),
+    )
     training_config = DpoTrainingConfig(
         method=method,
         beta=_require_float_or_int(training, "beta"),
@@ -524,7 +562,8 @@ def load_dpo_config(path: str | Path) -> DpoConfig:
         ),
         dataloader_num_workers=_require_int(training, "dataloader_num_workers"),
         dataset_num_proc=_require_int(training, "dataset_num_proc"),
-        loss_type=_require_str(training, "loss_type"),
+        loss_type=loss_types,
+        loss_weights=loss_weights,
         truncation_mode=_require_str(training, "truncation_mode"),
         precompute_ref_log_probs=_require_bool(
             training, "precompute_ref_log_probs"
@@ -591,10 +630,20 @@ def load_dpo_config(path: str | Path) -> DpoConfig:
         "sft",
         "sigmoid_norm",
     }
-    if training_config.loss_type not in supported_loss_types:
+    unsupported_loss_types = sorted(
+        set(training_config.loss_type) - supported_loss_types
+    )
+    if unsupported_loss_types:
         raise ValueError(
-            "DPO training.loss_type is not supported by the configured TRL API"
+            "DPO training.loss_type contains unsupported value(s): "
+            + ", ".join(unsupported_loss_types)
         )
+    if len(training_config.loss_weights) != len(training_config.loss_type):
+        raise ValueError(
+            "DPO training.loss_weights must match training.loss_type length"
+        )
+    if any(weight <= 0 for weight in training_config.loss_weights):
+        raise ValueError("DPO training.loss_weights values must be positive")
     if (
         training_config.max_steps is not None
         and training_config.max_steps <= 0

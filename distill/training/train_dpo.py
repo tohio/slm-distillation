@@ -18,7 +18,8 @@ from distill.models.resolve import (
     resolve_model_reference,
 )
 from distill.utils.config import DpoConfig, load_dpo_config
-from distill.utils.env import get_env_value
+from distill.utils.env import configure_wandb_environment, get_env_value
+from distill.utils.logging import install_compact_logging
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,8 @@ class DpoTrainingPlan:
     output_dir: str
     final_checkpoint_dir: str
     beta: float
-    loss_type: str
+    loss_type: list[str]
+    loss_weights: list[float]
     max_length: int
     per_device_train_batch_size: int
     gradient_accumulation_steps: int
@@ -78,6 +80,7 @@ def build_dpo_training_plan(config: DpoConfig) -> DpoTrainingPlan:
         final_checkpoint_dir=config.output.final_checkpoint_dir,
         beta=config.training.beta,
         loss_type=config.training.loss_type,
+        loss_weights=config.training.loss_weights,
         max_length=config.training.max_length,
         per_device_train_batch_size=(
             config.training.per_device_train_batch_size
@@ -214,6 +217,11 @@ def train_dpo(
     if resolved_max_steps is not None and resolved_max_steps <= 0:
         raise ValueError("max_steps must be positive when set")
 
+    stage = (
+        "logit-dpo"
+        if "logit-distilled" in config.output.model_name
+        else "response-dpo"
+    )
     training_args = TrlDpoConfig(
         output_dir=config.output.checkpoint_dir,
         do_train=True,
@@ -240,11 +248,16 @@ def train_dpo(
         dataset_num_proc=config.training.dataset_num_proc,
         seed=config.training.seed,
         max_steps=resolved_max_steps if resolved_max_steps is not None else -1,
-        report_to=[],
+        report_to=configure_wandb_environment(
+            run_name=config.output.model_name,
+            stage=stage,
+        ),
+        disable_tqdm=True,
         max_length=config.training.max_length,
         truncation_mode=config.training.truncation_mode,
         beta=config.training.beta,
-        loss_type=[config.training.loss_type],
+        loss_type=config.training.loss_type,
+        loss_weights=config.training.loss_weights,
         precompute_ref_log_probs=(
             config.training.precompute_ref_log_probs
         ),
@@ -264,6 +277,7 @@ def train_dpo(
         train_dataset=train_dataset,
         processing_class=tokenizer,
     )
+    install_compact_logging(trainer, stage=stage)
     original_use_cache = getattr(trainer.model.config, "use_cache", None)
 
     train_output = trainer.train(

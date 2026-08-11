@@ -60,8 +60,11 @@ CUDA_VISIBLE_DEVICES=0 make train-logit
 ~~~
 
 The validator resolves both model references, compares tokenizers, and
-inspects the configured response dataset before model weights are trained.
-Smoke outputs go to `runs/smoke/`; full outputs go to `runs/`.
+inspects the configured response dataset. It downloads model metadata and
+tokenizer files, not teacher/student weight files, and it does not allocate a
+GPU or run forward passes. The smoke command is the first check that downloads
+weights and executes the teacher/student loss on CUDA. Smoke outputs go to
+`runs/smoke/`; full outputs go to `runs/`.
 
 ## Swapping the Teacher or Student
 

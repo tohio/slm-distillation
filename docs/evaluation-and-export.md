@@ -85,8 +85,17 @@ make push-artifacts-logit
 make pull-artifacts-logit
 ~~~
 
-Artifact bundles contain final checkpoints, evaluation results, and the model
-card. Published training datasets are referenced by ID and are not duplicated.
+`make pack-artifacts` stages the configured files, writes a SHA-256 manifest,
+and creates a local `.tar.gz`. `make push-artifacts` stages the same files but
+uploads each file and `manifest.json` as an individual S3 object; it does not
+upload the `.tar.gz`.
+
+Each branch includes the pre-DPO final checkpoint, DPO final checkpoint,
+top-level evaluation results, and model card. Published datasets, model-cache
+copies of the base or teacher, intermediate checkpoints, and nested evaluation
+prediction files are excluded. S3 is optional and independent of Hugging Face
+model export. With `delete_remote_extra: true`, a push removes stale objects
+under that branch's configured S3 run prefix.
 
 ## See Also
 

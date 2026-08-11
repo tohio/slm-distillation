@@ -45,6 +45,11 @@ EXPORT_LOGIT_CONFIG ?= configs/export_logit.yaml
 ARTIFACT_CONFIG ?= configs/artifacts.yaml
 ARTIFACT_LOGIT_CONFIG ?= configs/artifacts_logit.yaml
 
+RESPONSE_TRAIN_ARGS = $(strip $(if $(RESPONSE_MAX_STEPS),--max-steps $(RESPONSE_MAX_STEPS)) $(if $(RESPONSE_MAX_TRAIN_SAMPLES),--max-train-samples $(RESPONSE_MAX_TRAIN_SAMPLES)) $(if $(RESPONSE_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(RESPONSE_RESUME_FROM_CHECKPOINT)))
+DPO_TRAIN_ARGS = $(strip $(if $(DPO_MAX_STEPS),--max-steps $(DPO_MAX_STEPS)) $(if $(DPO_MAX_TRAIN_SAMPLES),--max-train-samples $(DPO_MAX_TRAIN_SAMPLES)) $(if $(DPO_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(DPO_RESUME_FROM_CHECKPOINT)))
+LOGIT_TRAIN_ARGS = $(strip $(if $(LOGIT_MAX_STEPS),--max-steps $(LOGIT_MAX_STEPS)) $(if $(LOGIT_MAX_TRAIN_SAMPLES),--max-train-samples $(LOGIT_MAX_TRAIN_SAMPLES)) $(if $(LOGIT_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(LOGIT_RESUME_FROM_CHECKPOINT)))
+EVAL_ARGS = $(strip $(if $(EVAL_LIMIT),--limit $(EVAL_LIMIT)))
+
 .PHONY: help install test test-unit validate-response-inputs train-response train-response-smoke train-response-dry-run validate-dpo-inputs train-dpo train-dpo-smoke train-dpo-dry-run validate-logit-inputs train-logit train-logit-smoke train-logit-dry-run validate-dpo-logit-inputs train-dpo-logit train-dpo-logit-smoke train-dpo-logit-dry-run eval-response eval-response-smoke eval-response-dry-run validate-eval-response-inputs eval-logit eval-logit-smoke eval-logit-dry-run validate-eval-logit-inputs export export-dry-run export-push export-logit export-logit-dry-run export-logit-push verify-artifacts verify-artifacts-logit pack-artifacts pack-artifacts-logit unpack-artifacts push-artifacts push-artifacts-logit pull-artifacts pull-artifacts-logit
 
 help:
@@ -119,11 +124,7 @@ train-response-dry-run:
 >   --dry-run
 
 train-response:
-> PYTHONPATH=$(PYTHONPATH) $(RESPONSE_LAUNCH) scripts/train_response_distill.py \
->   --config $(RESPONSE_CONFIG) \
->   $(if $(RESPONSE_MAX_STEPS),--max-steps $(RESPONSE_MAX_STEPS)) \
->   $(if $(RESPONSE_MAX_TRAIN_SAMPLES),--max-train-samples $(RESPONSE_MAX_TRAIN_SAMPLES)) \
->   $(if $(RESPONSE_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(RESPONSE_RESUME_FROM_CHECKPOINT))
+> PYTHONPATH=$(PYTHONPATH) $(RESPONSE_LAUNCH) scripts/train_response_distill.py --config $(RESPONSE_CONFIG)$(if $(RESPONSE_TRAIN_ARGS), $(RESPONSE_TRAIN_ARGS))
 
 train-response-smoke:
 > PYTHONPATH=$(PYTHONPATH) $(RESPONSE_LAUNCH) scripts/train_response_distill.py \
@@ -167,11 +168,7 @@ pull-artifacts-logit:
 >   --config $(ARTIFACT_LOGIT_CONFIG)
 
 train-logit:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_logit_distill.py \
->   --config $(LOGIT_CONFIG) \
->   $(if $(LOGIT_MAX_STEPS),--max-steps $(LOGIT_MAX_STEPS)) \
->   $(if $(LOGIT_MAX_TRAIN_SAMPLES),--max-train-samples $(LOGIT_MAX_TRAIN_SAMPLES)) \
->   $(if $(LOGIT_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(LOGIT_RESUME_FROM_CHECKPOINT))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_logit_distill.py --config $(LOGIT_CONFIG)$(if $(LOGIT_TRAIN_ARGS), $(LOGIT_TRAIN_ARGS))
 
 train-logit-smoke:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/train_logit_distill.py \
@@ -191,11 +188,7 @@ validate-logit-inputs:
 >   --limit $(LOGIT_DATA_LIMIT)
 
 train-dpo:
-> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py \
->   --config $(DPO_CONFIG) \
->   $(if $(DPO_MAX_STEPS),--max-steps $(DPO_MAX_STEPS)) \
->   $(if $(DPO_MAX_TRAIN_SAMPLES),--max-train-samples $(DPO_MAX_TRAIN_SAMPLES)) \
->   $(if $(DPO_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(DPO_RESUME_FROM_CHECKPOINT))
+> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py --config $(DPO_CONFIG)$(if $(DPO_TRAIN_ARGS), $(DPO_TRAIN_ARGS))
 
 train-dpo-smoke:
 > PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py \
@@ -215,11 +208,7 @@ validate-dpo-inputs:
 >   --limit $(DPO_DATA_LIMIT)
 
 train-dpo-logit:
-> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py \
->   --config $(DPO_LOGIT_CONFIG) \
->   $(if $(DPO_MAX_STEPS),--max-steps $(DPO_MAX_STEPS)) \
->   $(if $(DPO_MAX_TRAIN_SAMPLES),--max-train-samples $(DPO_MAX_TRAIN_SAMPLES)) \
->   $(if $(DPO_RESUME_FROM_CHECKPOINT),--resume-from-checkpoint $(DPO_RESUME_FROM_CHECKPOINT))
+> PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py --config $(DPO_LOGIT_CONFIG)$(if $(DPO_TRAIN_ARGS), $(DPO_TRAIN_ARGS))
 
 train-dpo-logit-smoke:
 > PYTHONPATH=$(PYTHONPATH) $(DPO_LAUNCH) scripts/train_dpo.py \
@@ -239,9 +228,7 @@ validate-dpo-logit-inputs:
 >   --limit $(DPO_DATA_LIMIT)
 
 eval-response:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py \
->   --config $(EVAL_CONFIG) \
->   $(if $(EVAL_LIMIT),--limit $(EVAL_LIMIT))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py --config $(EVAL_CONFIG)$(if $(EVAL_ARGS), $(EVAL_ARGS))
 
 eval-response-smoke:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py \
@@ -254,15 +241,10 @@ eval-response-dry-run:
 >   --dry-run
 
 validate-eval-response-inputs:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py \
->   --config $(EVAL_CONFIG) \
->   --validate-inputs \
->   $(if $(EVAL_LIMIT),--limit $(EVAL_LIMIT))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py --config $(EVAL_CONFIG) --validate-inputs$(if $(EVAL_ARGS), $(EVAL_ARGS))
 
 eval-logit:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py \
->   --config $(EVAL_LOGIT_CONFIG) \
->   $(if $(EVAL_LIMIT),--limit $(EVAL_LIMIT))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py --config $(EVAL_LOGIT_CONFIG)$(if $(EVAL_ARGS), $(EVAL_ARGS))
 
 eval-logit-smoke:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py \
@@ -275,10 +257,7 @@ eval-logit-dry-run:
 >   --dry-run
 
 validate-eval-logit-inputs:
-> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py \
->   --config $(EVAL_LOGIT_CONFIG) \
->   --validate-inputs \
->   $(if $(EVAL_LIMIT),--limit $(EVAL_LIMIT))
+> PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/run_eval.py --config $(EVAL_LOGIT_CONFIG) --validate-inputs$(if $(EVAL_ARGS), $(EVAL_ARGS))
 
 export:
 > PYTHONPATH=$(PYTHONPATH) $(PYTHON) scripts/export_model.py \

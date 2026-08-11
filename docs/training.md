@@ -6,6 +6,9 @@ and production handoffs.
 ## Prerequisites
 
 ~~~bash
+sudo apt-get update
+sudo apt-get install -y python3.12-venv python3.12-dev build-essential
+
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -23,10 +26,48 @@ inside the active virtual environment.
 it is required for private inputs and model uploads. Logit training requires
 exactly one visible supported CUDA GPU.
 
+`python3.12-dev` supplies `Python.h`, while `build-essential` supplies the
+compiler toolchain used by runtime-compiled GPU kernels.
+
+## Experiment Tracking
+
+W&B tracking is optional. Set these values in `.env` to enable online runs:
+
+~~~dotenv
+WANDB_API_KEY=...
+WANDB_PROJECT=slm-distillation
+WANDB_ENTITY=...
+~~~
+
+Leave `WANDB_API_KEY` empty to keep W&B disabled. For a local offline run, set
+`WANDB_MODE=offline` in `.env` or the process environment. Every trainer still
+writes local Trainer state and metrics when W&B is disabled. W&B runs are
+grouped by model identity and labeled by response, logit, or DPO stage.
+
+## Training Output
+
+Console logs use compact, stage-specific lines instead of the full Trainer
+metric dictionary. DPO output emphasizes chosen/rejected rewards, margin,
+accuracy, and entropy. Logit output separates hard-label and soft-KL loss.
+Complete metrics remain available in Trainer state, local metric files, and
+W&B when enabled.
+
 ## Response Branch
 
 The response branch performs supervised fine-tuning on published teacher
 responses, then aligns that checkpoint with DPO.
+
+DPO combines the sigmoid preference loss with an SFT loss on chosen responses:
+
+~~~yaml
+loss_type: [sigmoid, sft]
+loss_weights: [1.0, 1.0]
+~~~
+
+The chosen-response term prevents preference separation from being achieved
+only by reducing rejected-response likelihood. During a bounded stability run,
+watch chosen reward, rejected reward, reward margin, preference accuracy, and
+entropy before committing to the full epoch.
 
 ### Smoke
 
@@ -79,6 +120,11 @@ make train-dpo-logit-smoke
 make validate-eval-logit-inputs EVAL_LOGIT_CONFIG=configs/eval_logit_smoke.yaml EVAL_LIMIT=20
 make eval-logit-smoke
 ~~~
+
+The logit validator downloads model metadata and both tokenizers, resolves
+their revisions, checks token-ID compatibility, and inspects response rows. It
+does not download teacher weights, allocate a GPU, or run forward passes. The
+logit smoke command is the first end-to-end model-weight and CUDA validation.
 
 The smoke chain is:
 
@@ -138,5 +184,6 @@ contract colocates teacher and student on one supported GPU.
 - [Architecture](architecture.md)
 - [Configuration](configuration.md)
 - [Evaluation and Export](evaluation-and-export.md)
+- [Response Distillation](response_distillation.md)
 - [Logit Distillation](logit_distillation.md)
 - [Command Reference](../COMMAND.md)

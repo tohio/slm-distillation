@@ -145,6 +145,10 @@ make unpack-artifacts ARTIFACT=artifacts/model-run.tar.gz
 | Variable | Purpose |
 |---|---|
 | `HF_TOKEN` | Private Hugging Face access, improved Hub rate limits, and model upload |
+| `WANDB_API_KEY` | Enable authenticated W&B experiment tracking |
+| `WANDB_PROJECT` | W&B project name; defaults to `slm-distillation` |
+| `WANDB_ENTITY` | Optional W&B team or account |
+| `WANDB_MODE` | Set to `offline` for local W&B recording or `disabled` to force-disable |
 | `S3_BUCKET` | Artifact handoff bucket |
 | `S3_PREFIX` | Optional artifact key prefix |
 | `AWS_ACCESS_KEY_ID` | S3 client credential |

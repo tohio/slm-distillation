@@ -28,6 +28,9 @@ local checkpoint directories use the same fields.
 DPO configs must consume the final checkpoint from the matching distillation
 config. The source checkpoint and tokenizer paths are identical by default.
 Preference fields are normalized to `prompt`, `chosen`, and `rejected`.
+`loss_type` accepts one loss name or a list; `loss_weights` must have the same
+length. Default branch configs combine `sigmoid` preference loss and `sft`
+chosen-response loss with equal weights.
 
 ### Evaluation
 
@@ -94,6 +97,9 @@ making final quality claims.
 `.env` may provide:
 
 - `HF_TOKEN` for private Hugging Face resources, rate limits, and pushes;
+- `WANDB_API_KEY`, `WANDB_PROJECT`, and `WANDB_ENTITY` for optional online
+  experiment tracking;
+- `WANDB_MODE=offline` for local W&B recording without online authentication;
 - `S3_BUCKET` and `S3_PREFIX` for artifact handoff;
 - AWS credentials and region values used by the S3 client.
 
