@@ -33,8 +33,21 @@ def test_load_logit_distill_config_reads_default_file() -> None:
         "h200",
         "a100",
     ]
+    assert (
+        config.output.model_name == "smollm2-135m-logit-distilled"
+    )
     assert config.output.final_checkpoint_dir.endswith(
         "logit_distill/checkpoints/final"
+    )
+
+
+def test_load_logit_distill_smoke_config_reads_output_model_name() -> None:
+    config = load_logit_distill_config(
+        "configs/logit_distill_smoke.yaml"
+    )
+
+    assert config.output.model_name == (
+        "smollm2-135m-logit-distilled-smoke"
     )
 
 

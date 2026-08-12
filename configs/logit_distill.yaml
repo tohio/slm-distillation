@@ -59,6 +59,7 @@ hardware:
     - a100
 
 output:
+  model_name: smollm2-135m-logit-distilled
   run_dir: runs/smollm2-135m-logit-distilled/logit_distill
   checkpoint_dir: runs/smollm2-135m-logit-distilled/logit_distill/checkpoints
   final_checkpoint_dir: runs/smollm2-135m-logit-distilled/logit_distill/checkpoints/final

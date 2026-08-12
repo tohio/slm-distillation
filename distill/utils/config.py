@@ -235,6 +235,7 @@ class LogitHardwareConfig:
 
 @dataclass(frozen=True)
 class LogitOutputConfig:
+    model_name: str
     run_dir: str
     checkpoint_dir: str
     final_checkpoint_dir: str
@@ -874,6 +875,7 @@ def load_logit_distill_config(path: str | Path) -> LogitDistillConfig:
             allowed_gpu_classes=normalized_gpu_classes,
         ),
         output=LogitOutputConfig(
+            model_name=_require_str(output, "model_name"),
             run_dir=_require_str(output, "run_dir"),
             checkpoint_dir=_require_str(output, "checkpoint_dir"),
             final_checkpoint_dir=_require_str(
