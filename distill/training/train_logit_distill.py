@@ -296,6 +296,7 @@ def train_logit_distill(
             **kwargs: Any,
         ) -> None:
             super().__init__(**kwargs)
+            self.model_accepts_loss_kwargs = False
             self.teacher_model = teacher_model
             self.distillation_temperature = temperature
             self.distillation_alpha = alpha
