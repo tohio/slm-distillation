@@ -7,7 +7,7 @@ model:
 model_card:
   output_path: runs/smollm2-135m-response-distilled/model_card.md
   source_checkpoint: HuggingFaceTB/SmolLM2-135M-Instruct
-  teacher_model: deepseek/deepseek-v4-flash
+  teacher_model: deepseek/deepseek-v4-pro
   distillation_type: response
   dpo_applied: true
   response_dataset: tohio/slm-synthetic-distillation-sft
