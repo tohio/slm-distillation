@@ -232,6 +232,7 @@ def prepare_logit_training_dataset(
     if sample_limit is not None:
         if sample_limit <= 0:
             raise ValueError("max_train_samples must be positive when set")
+        dataset = dataset.shuffle(seed=config.distillation.seed)
         dataset = dataset.select(range(min(sample_limit, len(dataset))))
 
     original_columns = list(dataset.column_names)

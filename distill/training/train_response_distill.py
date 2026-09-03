@@ -269,6 +269,7 @@ def prepare_response_training_dataset(
     if sample_limit is not None:
         if sample_limit <= 0:
             raise ValueError("max_train_samples must be positive when set")
+        dataset = dataset.shuffle(seed=config.training.seed)
         dataset = dataset.select(range(min(sample_limit, len(dataset))))
 
     original_columns = list(dataset.column_names)
