@@ -230,18 +230,32 @@ def encode_response_record(
         tokenizer,
         formatting,
     )
-    if not response_ids or response_ids[-1] != eos_token_id:
-        response_ids.append(int(eos_token_id))
 
-    if len(response_ids) >= max_length:
-        response_ids = response_ids[:max_length]
-        response_ids[-1] = int(eos_token_id)
-        prompt_ids = []
-    else:
-        prompt_ids = _truncate_prompt(
-            prompt_ids,
-            max_length - len(response_ids),
-        )
+    eos_token_id = int(eos_token_id)
+    if formatting.mode == "chat":
+        # Chat templates may emit trailing separator/whitespace tokens after the
+        # assistant EOS marker. Keep the template-provided EOS and discard only
+        # tokens that occur after it instead of appending a second EOS.
+        try:
+            eos_index = len(response_ids) - 1 - response_ids[::-1].index(
+                eos_token_id
+            )
+        except ValueError:
+            response_ids.append(eos_token_id)
+        else:
+            response_ids = response_ids[: eos_index + 1]
+    elif not response_ids or response_ids[-1] != eos_token_id:
+        response_ids.append(eos_token_id)
+
+    if len(prompt_ids) + len(response_ids) > max_length:
+        # Preserve prompt conditioning. Truncate the prompt only when it cannot
+        # leave room for any supervised response token, then truncate the
+        # response to the remaining budget.
+        prompt_ids = _truncate_prompt(prompt_ids, max_length - 1)
+        response_budget = max_length - len(prompt_ids)
+        if len(response_ids) > response_budget:
+            response_ids = response_ids[:response_budget]
+            response_ids[-1] = eos_token_id
 
     input_ids = [*prompt_ids, *response_ids]
     return {

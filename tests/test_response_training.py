@@ -26,7 +26,7 @@ class FakeTokenizer:
             assert messages[-1]["role"] == "user"
             return [1, 10, 11]
         assert messages[-1]["role"] == "assistant"
-        return [1, 10, 11, 20, 21, 22, 99]
+        return [1, 10, 11, 20, 21, 22, 99, 23]
 
     def __call__(
         self,
@@ -81,7 +81,7 @@ def test_encode_response_record_supports_plain_formatting() -> None:
     assert encoded["labels"][:3] == [-100, -100, -100]
 
 
-def test_encode_response_record_preserves_response_loss_when_truncated() -> None:
+def test_encode_response_record_preserves_prompt_when_truncated() -> None:
     encoded = encode_response_record(
         record(),
         tokenizer=FakeTokenizer(),
@@ -89,11 +89,11 @@ def test_encode_response_record_preserves_response_loss_when_truncated() -> None
             mode="chat",
             system_prompt=None,
         ),
-        max_length=3,
+        max_length=5,
     )
 
-    assert encoded["input_ids"] == [20, 21, 99]
-    assert encoded["labels"] == [20, 21, 99]
+    assert encoded["input_ids"] == [1, 10, 11, 20, 99]
+    assert encoded["labels"] == [-100, -100, -100, 20, 99]
 
 
 def test_encode_response_record_requires_chat_template() -> None:
